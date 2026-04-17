@@ -12,25 +12,26 @@
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px;max-width:390px;margin-inline:auto;min-height:100dvh;padding-top:var(--safe-top);overflow-x:hidden}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.hidden{display:none!important}
     .top{position:sticky;top:0;z-index:30;background:rgba(8,12,18,.88);backdrop-filter:blur(12px);border-bottom:1px solid rgba(30,45,61,.4);padding:12px 14px}
-    .row{display:flex;align-items:center;justify-content:space-between;gap:8px}.small{font-size:11px;color:var(--muted)}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:8px}.small{font-size:10px;color:var(--muted)}
     .seg,.tabs,.toggle{display:grid;gap:6px;background:#0b1118;border:1px solid var(--border);border-radius:999px;padding:4px}
     .seg{grid-template-columns:1fr 1fr;margin:12px 14px 0}.tabs{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(8px + var(--safe-bottom));width:calc(100% - 20px);max-width:370px;grid-template-columns:repeat(3,1fr);z-index:50}
     button,select,input{font:inherit;color:inherit}.btn{border:0;background:transparent;color:var(--muted);padding:7px 9px;border-radius:999px;font-weight:600}.btn.active{background:var(--hover);color:var(--accent)}
     .iconbtn{display:grid;place-items:center;width:36px;height:36px;padding:0}
     .icon{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .app{padding-bottom:calc(72px + var(--safe-bottom))}.content{padding:12px 14px 18px;display:grid;gap:10px}
+    #overview,#transactions,#investments{display:grid;gap:2px}
     .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px}.title{font-size:12px;font-weight:700;margin-bottom:7px}.muted{color:var(--muted)}
     .kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}.kpi{position:relative;overflow:hidden}.kpi::before{content:"";position:absolute;left:0;right:0;top:0;height:2px}
     .kpi.income::before{background:var(--income);box-shadow:0 0 10px var(--income)}.kpi.expense::before{background:var(--expense);box-shadow:0 0 10px var(--expense)}.kpi.saving::before{background:var(--saving);box-shadow:0 0 10px var(--saving)}.kpi.balance::before{background:var(--accent);box-shadow:0 0 10px rgba(232,224,227,.6)}
-    .value{font-size:17px;font-weight:700}.delta{font-size:9px}.up{color:var(--income)}.down{color:var(--expense)}
+    .value{font-size:16px;font-weight:700}.kpi .value{font-size:17px}.delta{font-size:9px}.up{color:var(--income)}.down{color:var(--expense)}
     canvas{width:100%!important;height:205px!important}.mini canvas{height:175px!important}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.table{width:100%;border-collapse:collapse;font-size:10px}.table th,.table td{text-align:left;padding:6px 4px;border-bottom:1px solid rgba(30,45,61,.5)}
-    .badge{border-radius:999px;padding:2px 7px;font-size:9px;border:1px solid var(--border);background:#0b1118}.money.blur{filter:blur(8px)}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stack{display:grid;grid-template-columns:1fr;gap:8px}.table{width:100%;border-collapse:collapse;font-size:10px}.table th,.table td{text-align:left;padding:6px 4px;border-bottom:1px solid rgba(30,45,61,.5)}
+    .badge{border-radius:999px;padding:2px 7px;font-size:8px;border:1px solid var(--border);background:#0b1118}.money.blur{filter:blur(8px)}
     .progress{height:7px;background:#0b1118;border:1px solid var(--border);border-radius:999px;overflow:hidden}.bar{height:100%}
     .notice{background:rgba(255,191,0,.08);border:1px solid rgba(255,191,0,.3);color:#ffd37a;padding:7px 10px;border-radius:10px;font-size:12px}
     .search{display:grid;grid-template-columns:1fr auto auto;gap:6px}.input,.sel{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;color:var(--text)}
     .tx{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 2px;border-bottom:1px solid rgba(30,45,61,.4)}
-    .dot{width:8px;height:8px;border-radius:50%}.dot.inc{background:var(--income)}.dot.exp{background:var(--expense)}.amount{font-weight:700}
+    .dot{width:8px;height:8px;border-radius:50%}.dot.inc{background:var(--income)}.dot.exp{background:var(--expense)}.amount{font-weight:700;font-size:12px}
     .panel{position:fixed;right:0;top:0;width:min(94vw,380px);height:100dvh;background:#0b1016;border-left:1px solid var(--border);transform:translateX(100%);transition:.25s;z-index:80;overflow:auto;padding:14px}
     .panel.show{transform:translateX(0)}.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:.2s;z-index:70}.ov.show{opacity:1;pointer-events:auto}
     .loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:120}.pull{min-height:18px;text-align:center;font-size:11px;color:var(--muted)}
@@ -58,7 +59,7 @@
     <section id="investments" class="hidden"></section>
   </main>
 </div>
-<nav class="tabs">
+<nav class="tabs" id="bottomTabs">
   <button class="btn active" data-screen="overview">Overview</button>
   <button class="btn" data-screen="transactions">Transactions</button>
   <button class="btn" data-screen="investments">Investments</button>
@@ -98,7 +99,7 @@
     const p = {Needs:["#071a14","#00e5a0"],Wants:["#1a070d","#ff4d6d"],Saving:["#0c141a","#658DA8"],Installment:["#1a1407","#ffb347"],"Credit Card":["#071420","#00d4ff"],"Annual Expense":["#071020","#38bdf8"],Income:["#07160f","#00e5a0"],Gifts:["#130720","#c084fc"],Others:["#0d1219","#4d6b85"]}[t] || ["#0d1219","#4d6b85"];
     return `background:${p[0]};color:${p[1]};border-color:${p[1]}33`;
   }
-  function chartCfg(type,data,stack=false,h=false){ return {type,data,options:{responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:9}}}},scales:type==="doughnut"?{}:{x:{stacked:stack,ticks:{color:"#4d6b85",font:{size:9}},grid:{color:"#1e2d3d"}},y:{stacked:stack,ticks:{color:"#4d6b85",font:{size:9}},grid:{color:"#1e2d3d"}}},indexAxis:h?"y":"x"}}; }
+  function chartCfg(type,data,stack=false,h=false){ return {type,data,options:{responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7}}}},scales:type==="doughnut"?{}:{x:{stacked:stack,ticks:{color:"#4d6b85",font:{size:7}},grid:{color:"#1e2d3d"}},y:{stacked:stack,ticks:{color:"#4d6b85",font:{size:7}},grid:{color:"#1e2d3d"}}},indexAxis:h?"y":"x"}}; }
   function clearCharts(){ Object.values(S.charts).forEach(c=>c&&c.destroy&&c.destroy()); S.charts={}; }
   function applyPrivacy(){
     document.querySelectorAll(".money").forEach(x=>x.classList.toggle("blur",S.privacy));
@@ -128,7 +129,7 @@
     <div class="kpis">${kpi("income","Total Income",income,dlt(income,sum(prev,t=>Number(t.Amount)>0)))}${kpi("expense","Total Expenses",-expense,dlt(expense,expAbs(prev,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type))))}${kpi("saving","Saving",saving,dlt(saving,sum(prev)))}${kpi("balance","Net Balance",net,dlt(net,sum(prev)))}</div>
     <div class="card"><div class="title">Monthly Trend (current year)</div><canvas id="chMainTrend"></canvas></div>
     <div class="card mini"><div class="title">Expense Split by Type</div><canvas id="chType"></canvas></div>
-    <div class="grid2"><div class="card mini"><div class="title">Needs by Category</div><canvas id="chNeeds"></canvas></div><div class="card mini"><div class="title">Wants by Category</div><canvas id="chWants"></canvas></div></div>
+    <div class="stack"><div class="card mini"><div class="title">Needs by Category</div><canvas id="chNeeds"></canvas></div><div class="card mini"><div class="title">Wants by Category</div><canvas id="chWants"></canvas></div></div>
     <div class="card"><div class="title">Budget Utilization</div>${buds.map(b=>{const c=b.pct<70?"#00b37a":b.pct<100?"#ffbf00":"#c94060"; return `<div style="margin:8px 0"><div class="row"><span>${esc(b.p)}</span><span class="mono muted">${fmt.num(-b.u)} / ${fmt.num(b.l)}</span></div><div class="progress"><div class="bar" style="width:${Math.min(100,b.pct)}%;background:${c}"></div></div></div>`;}).join("")}</div>
     <div class="card"><div class="title">Expenses Breakdown</div>${table(expBreak,totalExp,true)}</div><div class="card"><div class="title">Income Breakdown</div>${table(incBreak,totalInc,false)}</div>`;
     id("monthSel").onchange=e=>{S.month=e.target.value; render();};
@@ -197,6 +198,7 @@
   function setScreens(){
     ["overview","transactions","investments"].forEach(s=>{ id(s).classList.toggle("hidden",S.screen!==s); document.querySelector(`[data-screen='${s}']`).classList.toggle("active",S.screen===s); });
     const showInv=S.wallet==="other"; document.querySelector("[data-screen='investments']").classList.toggle("hidden",!showInv); if(!showInv && S.screen==="investments"){ S.screen="overview"; setScreens(); }
+    id("bottomTabs").style.gridTemplateColumns = showInv ? "repeat(3,1fr)" : "repeat(2,1fr)";
     document.querySelectorAll("[data-wallet]").forEach(b=>b.classList.toggle("active",b.dataset.wallet===S.wallet));
   }
   function render(){ if(!S.raw) return; clearCharts(); if(S.wallet==="main") renderOverviewMain(); else renderOverviewOther(); renderTransactions(); renderInvestments(); setScreens(); applyPrivacy(); }
