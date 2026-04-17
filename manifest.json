@@ -1,0 +1,22 @@
+{
+  "name": "Fintrack",
+  "short_name": "Fintrack",
+  "display": "standalone",
+  "background_color": "#080c12",
+  "theme_color": "#080c12",
+  "start_url": "index.html",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='38' fill='%23080c12'/%3E%3Crect x='38' y='48' width='116' height='20' rx='4' fill='%23d2bb49'/%3E%3Crect x='38' y='78' width='116' height='20' rx='4' fill='%23b39836'/%3E%3Crect x='38' y='108' width='116' height='20' rx='4' fill='%23947a27'/%3E%3Ctext x='96' y='166' fill='%23E8E0E3' font-size='28' text-anchor='middle' font-family='monospace'%3EFT%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='108' fill='%23080c12'/%3E%3Crect x='102' y='132' width='308' height='52' rx='8' fill='%23d2bb49'/%3E%3Crect x='102' y='210' width='308' height='52' rx='8' fill='%23b39836'/%3E%3Crect x='102' y='288' width='308' height='52' rx='8' fill='%23947a27'/%3E%3Ctext x='256' y='440' fill='%23E8E0E3' font-size='84' text-anchor='middle' font-family='monospace'%3EFT%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
