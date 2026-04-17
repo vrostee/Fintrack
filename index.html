@@ -1,3 +1,244 @@
- DOM Path: div#app > main.content > section#overview > div.card[1] > div[0] > div.row > span.mono muted
-Position: top=256px, left=414px, width=143px, height=15px
-HTML Element: <span class="mono muted" data-cursor-element-id="cursor-el-2866">Rp -1.72M / Rp 1.90M</span> 
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080c12">
+  <title>Fintrack</title>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{--bg:#080c12;--card:#0d1219;--surface:#131b24;--hover:#1a2332;--border:#1e2d3d;--border-active:#2a3f55;--text:#d4e8f7;--muted:#4d6b85;--accent:#E8E0E3;--accent-2:#C4B8BC;--income:#00b37a;--expense:#c94060;--saving:#658DA8;--warn:#ffb347;--inv:#38bdf8;--safe-bottom:env(safe-area-inset-bottom,0px);--safe-top:env(safe-area-inset-top,0px)}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px;max-width:390px;margin-inline:auto;min-height:100dvh;padding-top:var(--safe-top);overflow-x:hidden}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.hidden{display:none!important}
+    .top{position:sticky;top:0;z-index:30;background:rgba(8,12,18,.88);backdrop-filter:blur(12px);border-bottom:1px solid rgba(30,45,61,.4);padding:12px 14px}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:8px}.small{font-size:10px;color:var(--muted)}
+    .seg,.tabs,.toggle{display:grid;gap:6px;background:#0b1118;border:1px solid var(--border);border-radius:999px;padding:4px}
+    .seg{grid-template-columns:1fr 1fr;margin:12px 14px 0}.tabs{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(8px + var(--safe-bottom));width:calc(100% - 20px);max-width:370px;grid-template-columns:repeat(3,1fr);z-index:50}
+    button,select,input{font:inherit;color:inherit}.btn{border:0;background:transparent;color:var(--muted);padding:7px 9px;border-radius:999px;font-weight:600}.btn.active{background:var(--hover);color:var(--accent)}
+    .iconbtn{display:grid;place-items:center;width:36px;height:36px;padding:0}
+    .icon{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .app{padding-bottom:calc(72px + var(--safe-bottom))}.content{padding:12px 14px 18px;display:grid;gap:10px}
+    #overview,#transactions,#investments{display:grid;gap:2px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px}.title{font-size:12px;font-weight:700;margin-bottom:7px}.muted{color:var(--muted)}
+    .kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}.kpi{position:relative;overflow:hidden}.kpi::before{content:"";position:absolute;left:0;right:0;top:0;height:2px}
+    .kpi.income::before{background:var(--income);box-shadow:0 0 10px var(--income)}.kpi.expense::before{background:var(--expense);box-shadow:0 0 10px var(--expense)}.kpi.saving::before{background:var(--saving);box-shadow:0 0 10px var(--saving)}.kpi.balance::before{background:var(--accent);box-shadow:0 0 10px rgba(232,224,227,.6)}
+    .value{font-size:16px;font-weight:700}.kpi .value{font-size:17px}.delta{font-size:9px}.up{color:var(--income)}.down{color:var(--expense)}
+    canvas{width:100%!important;height:205px!important}.mini canvas{height:175px!important}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stack{display:grid;grid-template-columns:1fr;gap:8px}.table{width:100%;border-collapse:collapse;font-size:10px}.table th,.table td{text-align:left;padding:6px 4px;border-bottom:1px solid rgba(30,45,61,.5)}
+    #chType{height:92px!important}
+    #chDonut{height:150px!important;max-width:220px!important;margin:0 auto}
+    .badge{border-radius:999px;padding:2px 7px;font-size:8px;border:1px solid var(--border);background:#0b1118}.money.blur{filter:blur(8px)}
+    .progress{height:7px;background:#0b1118;border:1px solid var(--border);border-radius:999px;overflow:hidden}.bar{height:100%}
+    .notice{background:rgba(255,191,0,.08);border:1px solid rgba(255,191,0,.3);color:#ffd37a;padding:7px 10px;border-radius:10px;font-size:12px}
+    .search{display:grid;grid-template-columns:1fr auto auto;gap:6px}.input,.sel{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;color:var(--text)}
+    .scroller{scrollbar-width:thin;scrollbar-color:#2a3f55 #0d1219}
+    .scroller::-webkit-scrollbar{width:6px;height:6px}
+    .scroller::-webkit-scrollbar-track{background:#0d1219;border-radius:999px}
+    .scroller::-webkit-scrollbar-thumb{background:#2a3f55;border-radius:999px}
+    .scroller::-webkit-scrollbar-thumb:hover{background:#3b5672}
+    .budget-num{font-size:8px}
+    .tx{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 2px;border-bottom:1px solid rgba(30,45,61,.4)}
+    .dot{width:8px;height:8px;border-radius:50%}.dot.inc{background:var(--income)}.dot.exp{background:var(--expense)}.amount{font-weight:700;font-size:12px}
+    .panel{position:fixed;right:0;top:0;width:min(94vw,380px);height:100dvh;background:#0b1016;border-left:1px solid var(--border);transform:translateX(100%);transition:.25s;z-index:80;overflow:auto;padding:14px}
+    .panel.show{transform:translateX(0)}.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:.2s;z-index:70}.ov.show{opacity:1;pointer-events:auto}
+    .loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:120}.pull{min-height:18px;text-align:center;font-size:11px;color:var(--muted)}
+    .coin{width:56px;height:12px;background:#d2bb49;box-shadow:0 0 0 2px #7c6524 inset,0 0 8px rgba(255,191,0,.25);opacity:0;transform:translateY(-12px);animation:drop .9s steps(5,end) infinite}
+    .coin:nth-child(2){animation-delay:.2s}.coin:nth-child(3){animation-delay:.4s}.coin:nth-child(4){animation-delay:.6s}
+    @keyframes drop{0%{opacity:0;transform:translateY(-20px)}25%{opacity:1}65%{transform:translateY(0)}100%{opacity:1;transform:translateY(0)}}
+  </style>
+</head>
+<body>
+<div id="loading" class="loading"><div style="text-align:center"><div class="coin"></div><div class="coin"></div><div class="coin"></div><div class="coin"></div><div class="mono muted" style="margin-top:12px">Syncing Fintrack...</div></div></div>
+<div id="app" class="app" style="visibility:hidden">
+  <header class="top">
+    <div class="row"><strong>Fintrack</strong><button id="privacyBtn" class="btn iconbtn" aria-label="Toggle privacy"></button></div>
+    <div id="updated" class="small mono">Last updated: -</div>
+    <div id="cacheNotice" class="notice hidden" style="margin-top:8px">Showing cached data</div>
+  </header>
+  <div class="seg">
+    <button class="btn active" data-wallet="main">Main Wallets</button>
+    <button class="btn" data-wallet="other">Other Wallets</button>
+  </div>
+  <main class="content">
+    <div id="pull" class="pull"></div>
+    <section id="overview"></section>
+    <section id="transactions" class="hidden"></section>
+    <section id="investments" class="hidden"></section>
+  </main>
+</div>
+<nav class="tabs" id="bottomTabs">
+  <button class="btn active" data-screen="overview">Overview</button>
+  <button class="btn" data-screen="transactions">Transactions</button>
+  <button class="btn" data-screen="investments">Investments</button>
+</nav>
+<div id="ov" class="ov"></div><aside id="panel" class="panel"></aside>
+
+<script>
+(() => {
+  const URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMVFzZt_GOJJU7qxXf5Il82gJ0QB-bsxwEz0ZII1nsCl3tsEgi4byDmPM2IbtbUgkiMpiZv2V__GF2e78QWbpCOj1G7CCyzjGixeoC4Gdpx58IkLgjcNq8smRDvuW5_7CEfIGCBFjEI2QfX29p89IGuIWfWRmljqP7-D_kQMn2kmKHxA4cHPorrX92Jxcq9iCN2WepC08rFhD3h7zcbDQ-ESGX4VfSn3vxf3crylaGhtWnu0c0tq4xdSqbRAfy8z_7wggLmpaKPDm6etFsEDH7CfcbdGo8WVwy1--Zes&lib=MqEDqLpq0cKliZq6eZY5rQwrtsCdDM2Lz";
+  const KEY = "fintrack_cache_v1";
+  const MAIN = ["BCA","Jago","Blu","Credit BCA","Credit BRI"];
+  const DEBIT = ["BCA","Jago","Blu"];
+  const CREDIT = ["Credit BCA","Credit BRI"];
+  const OTHER = ["Saqu","Annual Expense","Niaga"];
+  const EXCL_ALL = new Set(["Not Included","Budgeting","Other User"]);
+  const EXCL_EXP = new Set(["Saving","Investment (In)"]);
+
+  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",month:"",year:"",charts:{} };
+  const E = { app:id("app"),loading:id("loading"),updated:id("updated"),cacheNotice:id("cacheNotice"),overview:id("overview"),tx:id("transactions"),inv:id("investments"),pull:id("pull"),ov:id("ov"),panel:id("panel") };
+
+  function id(x){return document.getElementById(x)}
+  function esc(s){return String(s??"").replace(/[&<>'"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[m]))}
+  const fmt = {
+    num(n){ n=Number(n||0); const a=Math.abs(n); if(a>=1e6) return `Rp ${(n/1e6).toFixed(2)}M`; if(a>=1e3) return `Rp ${(n/1e3).toFixed(1)}K`; return `Rp ${n.toFixed(0)}`; },
+    dt(iso){ const d=new Date(iso); const p=x=>String(x).padStart(2,"0"); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`; },
+    parseDate(s){ const [dd,mm,yy]=(s||"").split("/").map(Number); return new Date(yy||0,(mm||1)-1,dd||1); }
+  };
+  function txBase(){ if(!S.raw) return []; return [...(S.raw.transactions||[]),...(S.raw.cc_transactions||[])].filter(t=>!t["Is Excluded"]&&!EXCL_ALL.has(t.Type)); }
+  function byWallet(group){ const set=new Set(group); return txBase().filter(t=>set.has(t.Wallet)); }
+  function sum(rows,p=()=>true){ return rows.filter(p).reduce((a,b)=>a+Number(b.Amount||0),0); }
+  function expAbs(rows,p=()=>true){ return rows.filter(p).filter(t=>Number(t.Amount)<0).reduce((a,b)=>a+Math.abs(Number(b.Amount||0)),0); }
+  function months(rows){ return [...new Set(rows.map(t=>t.Month).filter(Boolean))].sort(); }
+  function years(rows){ return [...new Set(rows.map(t=>t.Year).filter(Boolean))].sort((a,b)=>a-b); }
+  function dlt(cur,prev){ if(!prev) return {pct:0,up:cur>=0}; const pct=((cur-prev)/Math.abs(prev))*100; return {pct,up:pct>=0}; }
+  function tColor(t){ return ({Needs:"#00e5a0",Wants:"#ff4d6d",Saving:"#658DA8",Installment:"#ffb347","Credit Card":"#00d4ff","Annual Expense":"#38bdf8",Income:"#00e5a0",Gifts:"#c084fc",Others:"#4d6b85","Investment (In)":"#38bdf8"})[t]||"#4d6b85"; }
+  function tPill(t){
+    const p = {Needs:["#071a14","#00e5a0"],Wants:["#1a070d","#ff4d6d"],Saving:["#0c141a","#658DA8"],Installment:["#1a1407","#ffb347"],"Credit Card":["#071420","#00d4ff"],"Annual Expense":["#071020","#38bdf8"],Income:["#07160f","#00e5a0"],Gifts:["#130720","#c084fc"],Others:["#0d1219","#4d6b85"]}[t] || ["#0d1219","#4d6b85"];
+    return `background:${p[0]};color:${p[1]};border-color:${p[1]}33`;
+  }
+  function chartCfg(type,data,stack=false,h=false){
+    const base = {responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7}}}}};
+    if(type==="doughnut"){
+      return {type,data,options:{...base,cutout:"72%",radius:"84%",plugins:{legend:{position:"bottom",labels:{color:"#d4e8f7",font:{size:8},usePointStyle:true,padding:10}}}}};
+    }
+    return {type,data,options:{...base,scales:{x:{stacked:stack,ticks:{color:"#4d6b85",font:{size:7}},grid:{color:"#1e2d3d"}},y:{stacked:stack,ticks:{color:"#4d6b85",font:{size:7}},grid:{color:"#1e2d3d"}}},indexAxis:h?"y":"x"}};
+  }
+  function clearCharts(){ Object.values(S.charts).forEach(c=>c&&c.destroy&&c.destroy()); S.charts={}; }
+  function applyPrivacy(){
+    document.querySelectorAll(".money").forEach(x=>x.classList.toggle("blur",S.privacy));
+    const btn = id("privacyBtn");
+    btn.innerHTML = S.privacy
+      ? `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c5.5 0 9.6 4.8 10 8-.2 1.6-1.3 3.5-3 5.1"/><path d="M14.1 19.8A10.8 10.8 0 0 1 12 20c-5.5 0-9.6-4.8-10-8 .1-1.1.7-2.3 1.6-3.5"/></svg>`
+      : `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-8 10-8 10 8 10 8-3.5 8-10 8-10-8-10-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+    btn.setAttribute("aria-label", S.privacy ? "Disable privacy mode" : "Enable privacy mode");
+    btn.title = S.privacy ? "Show amounts" : "Hide amounts";
+  }
+
+  function kpi(kind,name,val,dd,delta=true){ return `<div class="card kpi ${kind}"><div class="muted">${name}</div><div class="value mono money">${fmt.num(val)}</div>${delta?`<div class="delta ${dd.up?"up":"down"}">${dd.up?"▲":"▼"} ${Math.abs(dd.pct).toFixed(1)}% vs prev month</div>`:""}</div>`; }
+  function table(rows,total,withType){ return `<table class="table mono"><thead><tr><th>${withType?"Parent Category":"Category"}</th>${withType?"<th>Type</th>":""}<th>Amount</th><th>%</th></tr></thead><tbody>${rows.map(([k,v])=>`<tr><td>${esc(k)}</td>${withType?`<td><span class="badge" style="${tPill('Others')}">Type</span></td>`:""}<td class="money">${fmt.num(-Math.abs(v))}</td><td>${((v/total)*100).toFixed(1)}%</td></tr>`).join("")}</tbody></table>`; }
+
+  function renderOverviewMain(){
+    const rows = byWallet(MAIN), mths = months(rows); S.month = S.month || mths[mths.length-1] || "";
+    const cur = rows.filter(t=>t.Month===S.month), prevM = mths[Math.max(0,mths.indexOf(S.month)-1)]||"", prev = rows.filter(t=>t.Month===prevM);
+    const income = sum(cur,t=>Number(t.Amount)>0), expense = expAbs(cur,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)), saving = income-expense, net = sum(cur);
+    const expBreak = Object.entries(cur.filter(t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
+    const incBreak = Object.entries(cur.filter(t=>Number(t.Amount)>0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Number(t.Amount)),m),{})).sort((a,b)=>b[1]-a[1]);
+    const totalExp = expBreak.reduce((a,b)=>a+b[1],0)||1, totalInc = incBreak.reduce((a,b)=>a+b[1],0)||1;
+    const typeTotals = Object.entries(cur.filter(t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)).reduce((m,t)=>((m[t.Type]=(m[t.Type]||0)+Math.abs(Number(t.Amount))),m),{}));
+    const needs = Object.entries(cur.filter(t=>t.Type==="Needs"&&Number(t.Amount)<0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).slice(0,8);
+    const wants = Object.entries(cur.filter(t=>t.Type==="Wants"&&Number(t.Amount)<0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).slice(0,8);
+    const buds = Object.entries(S.raw.budgets||{}).map(([p,l])=>{ const u=expAbs(cur,t=>t["Parent Category"]===p); return {p,l:Number(l||0),u,pct:l?u/l*100:0};});
+    E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Main Wallets</div><select id="monthSel" class="sel mono">${mths.map(m=>`<option ${m===S.month?"selected":""}>${m}</option>`).join("")}</select></div>
+    <div class="kpis">${kpi("income","Total Income",income,dlt(income,sum(prev,t=>Number(t.Amount)>0)))}${kpi("expense","Total Expenses",-expense,dlt(expense,expAbs(prev,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type))))}${kpi("saving","Saving",saving,dlt(saving,sum(prev)))}${kpi("balance","Net Balance",net,dlt(net,sum(prev)))}</div>
+    <div class="card"><div class="title">Monthly Trend (current year)</div><canvas id="chMainTrend"></canvas></div>
+    <div class="card mini"><div class="title">Expense Split by Type</div><canvas id="chType"></canvas></div>
+    <div class="stack"><div class="card mini"><div class="title">Needs by Category</div><canvas id="chNeeds"></canvas></div><div class="card mini"><div class="title">Wants by Category</div><canvas id="chWants"></canvas></div></div>
+    <div class="card"><div class="title">Budget Utilization</div>${buds.map(b=>{const c=b.pct<70?"#00b37a":b.pct<100?"#ffbf00":"#c94060"; return `<div style="margin:8px 0"><div class="row"><span>${esc(b.p)}</span><span class="mono muted budget-num">${fmt.num(-b.u)} / ${fmt.num(b.l)}</span></div><div class="progress"><div class="bar" style="width:${Math.min(100,b.pct)}%;background:${c}"></div></div></div>`;}).join("")}</div>
+    <div class="card"><div class="title">Expenses Breakdown</div>${table(expBreak,totalExp,true)}</div><div class="card"><div class="title">Income Breakdown</div>${table(incBreak,totalInc,false)}</div>`;
+    id("monthSel").onchange=e=>{S.month=e.target.value; render();};
+    const y=S.month.slice(0,4), ym=mths.filter(m=>m.startsWith(y));
+    S.charts.mainTrend = new Chart(id("chMainTrend"), chartCfg("line",{labels:ym,datasets:[{label:"Income",data:ym.map(m=>sum(rows.filter(t=>t.Month===m),t=>Number(t.Amount)>0)),borderColor:"#00916b",backgroundColor:"rgba(0,145,107,0.18)",fill:true,tension:.35},{label:"Expense",data:ym.map(m=>expAbs(rows.filter(t=>t.Month===m),t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type))),borderColor:"#a0203a",backgroundColor:"rgba(160,32,58,0.18)",fill:true,tension:.35}]}));
+    S.charts.type = new Chart(id("chType"), chartCfg("bar",{labels:["Expenses"],datasets:typeTotals.map(([t,v])=>({label:t,data:[v],backgroundColor:tColor(t),stack:"a",barThickness:10,maxBarThickness:10,borderRadius:4}) )}, true, true));
+    S.charts.needs = new Chart(id("chNeeds"), chartCfg("bar",{labels:needs.map(x=>x[0]),datasets:[{label:"Needs",data:needs.map(x=>x[1]),backgroundColor:"#c94060"}]}, false, true));
+    S.charts.wants = new Chart(id("chWants"), chartCfg("bar",{labels:wants.map(x=>x[0]),datasets:[{label:"Wants",data:wants.map(x=>x[1]),backgroundColor:"#ff4d6d"}]}, false, true));
+  }
+
+  function renderOverviewOther(){
+    const rows=byWallet(OTHER), yrs=years(rows); S.year=S.year||yrs[yrs.length-1]||""; const cur=rows.filter(t=>t.Year==S.year);
+    const inflow=sum(cur,t=>Number(t.Amount)>0), spending=expAbs(cur,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)), net=sum(cur);
+    const mths=months(rows), cum=[]; let run=0; mths.forEach(m=>{run+=sum(rows.filter(t=>t.Month===m)); cum.push(run);});
+    const recent=mths.slice(-12), pcs=[...new Set(cur.filter(t=>Number(t.Amount)<0).map(t=>t["Parent Category"]))].slice(0,8);
+    const heat=pcs.map(pc=>({pc,vals:recent.map(m=>expAbs(rows.filter(t=>t.Month===m),t=>t["Parent Category"]===pc))})), maxH=Math.max(1,...heat.flatMap(h=>h.vals));
+    const yIn=yrs.map(y=>sum(rows.filter(t=>t.Year===y),t=>Number(t.Amount)>0)), yOut=yrs.map(y=>expAbs(rows.filter(t=>t.Year===y),t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)));
+    const wallets=OTHER.map(w=>({w,v:expAbs(cur.filter(t=>t.Wallet===w))+sum(cur.filter(t=>t.Wallet===w),t=>Number(t.Amount)>0)}));
+    const pBreak=Object.entries(cur.filter(t=>Number(t.Amount)<0).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
+    const iBreak=Object.entries(cur.filter(t=>Number(t.Amount)>0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Number(t.Amount)),m),{})).sort((a,b)=>b[1]-a[1]);
+    E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Other Wallets</div><select id="yearSel" class="sel mono">${yrs.map(y=>`<option ${String(y)===String(S.year)?"selected":""}>${y}</option>`).join("")}</select></div>
+    <div class="grid2">${kpi("income","Total Inflow",inflow,{pct:0,up:true},false)}${kpi("expense","Total Spending",-spending,{pct:0,up:false},false)}</div><div class="card kpi balance"><div class="muted">Net Balance</div><div class="value mono money">${fmt.num(net)}</div></div>
+    <div class="card"><div class="title">Cumulative Savings (all time)</div><canvas id="chCum"></canvas></div>
+    <div class="card"><div class="title">Spending Heatmap (12 months)</div><div style="overflow:auto"><table class="table mono"><thead><tr><th>Parent</th>${recent.map(m=>`<th>${m.slice(5)}</th>`).join("")}</tr></thead><tbody>${heat.map(h=>`<tr><td>${esc(h.pc)}</td>${h.vals.map(v=>`<td style="background:rgba(201,64,96,${(v/maxH*.8).toFixed(2)})"></td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
+    <div class="card"><div class="title">Yearly Inflow vs Spending</div><canvas id="chYearly"></canvas></div>
+    <div class="card mini"><div class="title">Wallet Split</div><canvas id="chDonut"></canvas></div>
+    <div class="card"><div class="title">Parent Category Breakdown</div>${table(pBreak,pBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div><div class="card"><div class="title">Income Breakdown</div>${table(iBreak,iBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div>`;
+    id("yearSel").onchange=e=>{S.year=e.target.value; render();};
+    S.charts.cum = new Chart(id("chCum"), chartCfg("line",{labels:mths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3}]}));
+    S.charts.yearly = new Chart(id("chYearly"), chartCfg("bar",{labels:yrs,datasets:[{label:"Inflow",data:yIn,backgroundColor:"#00b37a"},{label:"Spending",data:yOut,backgroundColor:"#c94060"}]}));
+    S.charts.donut = new Chart(id("chDonut"), chartCfg("doughnut",{labels:wallets.map(x=>x.w),datasets:[{data:wallets.map(x=>x.v),backgroundColor:["#00e5a0","#00d4ff","#a78bfa"]}]}));
+  }
+
+  function txDetail(t){
+    E.ov.classList.add("show"); E.panel.classList.add("show");
+    E.panel.innerHTML = `<div class="row"><strong>Transaction Detail</strong><button id="closePanel" class="btn">Close</button></div><div class="card" style="margin-top:10px">${Object.entries({Date:t.Date,Category:t.Category,"Parent Category":t["Parent Category"],Type:t.Type,Wallet:t.Wallet,"Wallet Type":t["Wallet Type"],Amount:t.Amount,Currency:t.Currency,Note:t.Note,Flow:t.Flow,Month:t.Month,Year:t.Year,"Is Excluded":t["Is Excluded"]}).map(([k,v])=>`<div class="row" style="padding:6px 0;border-bottom:1px solid rgba(30,45,61,.35)"><span class="muted">${k}</span><span class="mono money">${esc(v)}</span></div>`).join("")}</div>`;
+    id("closePanel").onclick = closePanel; applyPrivacy();
+  }
+  function closePanel(){ E.ov.classList.remove("show"); E.panel.classList.remove("show"); }
+
+  function renderTransactions(){
+    const base = S.wallet==="main" ? byWallet(S.txMode==="debit"?DEBIT:CREDIT) : byWallet(OTHER);
+    let rows=[...base];
+    if(S.txSearch.trim()){ const q=S.txSearch.toLowerCase(); rows=rows.filter(t=>{ const f=S.txField==="All"?[t.Category,t["Parent Category"],t.Type,t.Wallet,t.Note]:[t[S.txField]||""]; return f.some(v=>String(v||"").toLowerCase().includes(q));});}
+    rows.sort((a,b)=> S.txSort==="date_desc"?fmt.parseDate(b.Date)-fmt.parseDate(a.Date):S.txSort==="date_asc"?fmt.parseDate(a.Date)-fmt.parseDate(b.Date):S.txSort==="amount_desc"?Number(b.Amount)-Number(a.Amount):Number(a.Amount)-Number(b.Amount));
+    E.tx.innerHTML = `<div class="card"><div class="title">Transactions</div>${S.wallet==="main"?`<div class="toggle" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><button class="btn ${S.txMode==="debit"?"active":""}" data-mode="debit">Debit</button><button class="btn ${S.txMode==="cc"?"active":""}" data-mode="cc">CC</button></div>`:""}
+    <div class="search"><input id="txSearch" class="input" placeholder="Search transactions" value="${esc(S.txSearch)}"><select id="txField" class="sel"><option>All</option><option>Category</option><option>Parent Category</option><option>Type</option><option>Wallet</option><option>Note</option></select><select id="txSort" class="sel"><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="amount_desc">Amount ↓</option><option value="amount_asc">Amount ↑</option></select></div>
+    <div class="scroller" style="margin-top:8px;max-height:58dvh;overflow:auto">${rows.map((t,i)=>`<button class="tx" data-i="${i}" style="width:100%;background:transparent;border:0;color:inherit;text-align:left"><span class="dot ${t.Flow==="Income"?"inc":"exp"}"></span><span><div>${esc(t.Category)} ${t.Note?`<span class="muted">- ${esc(t.Note)}</span>`:""}</div><div class="small">${esc(t.Wallet)} - ${esc(t.Date)} - <span class="badge" style="${tPill(t.Type)}">${esc(t.Type)}</span></div></span><span class="amount mono money" style="color:${t.Flow==="Income"?"var(--income)":"var(--expense)"}">${fmt.num(Number(t.Amount))}</span></button>`).join("")}</div></div>`;
+    if(S.wallet==="main") document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{S.txMode=b.dataset.mode; renderTransactions(); applyPrivacy();});
+    id("txField").value=S.txField; id("txSort").value=S.txSort;
+    id("txField").onchange=e=>{S.txField=e.target.value; renderTransactions(); applyPrivacy();};
+    id("txSort").onchange=e=>{S.txSort=e.target.value; renderTransactions(); applyPrivacy();};
+    id("txSearch").oninput=e=>{S.txSearch=e.target.value; renderTransactions(); applyPrivacy();};
+    document.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>txDetail(rows[Number(b.dataset.i)]));
+  }
+
+  function renderInvestments(){
+    if(S.wallet!=="other"){ E.inv.innerHTML=""; return; }
+    const rows=byWallet(OTHER), out=rows.filter(t=>t["Parent Category"]==="Investment"&&Number(t.Amount)<0), ins=rows.filter(t=>t.Type==="Investment (In)"&&Number(t.Amount)>0);
+    const sec=(name,color,arr,idn)=>`<div class="card"><div class="title" style="color:${color}">${name}</div><div class="value mono money">${fmt.num(arr.reduce((a,b)=>a+Number(b.Amount),0))}</div><div class="small">${arr.length} transactions</div><input class="input" id="${idn}" placeholder="Search ${name.toLowerCase()}" style="margin:8px 0"><div id="${idn}_list" class="scroller" style="max-height:220px;overflow:auto"></div></div>`;
+    E.inv.innerHTML = sec("Investment Out","#ffbf00",out,"outSearch")+sec("Investment In","#ff6ea6",ins,"inSearch");
+    const bind=(inp,lst,arr,color)=>{ const i=id(inp), l=id(lst); const draw=()=>{ const q=i.value.toLowerCase(); l.innerHTML=arr.filter(t=>[t.Category,t.Note,t.Wallet,t.Type].some(v=>String(v||"").toLowerCase().includes(q))).map(t=>`<div class="tx"><span class="dot ${Number(t.Amount)>0?"inc":"exp"}"></span><span><div>${esc(t.Category)}</div><div class="small">${esc(t.Date)} - ${esc(t.Wallet)}</div></span><span class="amount mono money" style="color:${color}">${fmt.num(Number(t.Amount))}</span></div>`).join("");}; i.oninput=draw; draw(); };
+    bind("outSearch","outSearch_list",out,"#ffbf00"); bind("inSearch","inSearch_list",ins,"#ff6ea6");
+  }
+
+  function setScreens(){
+    ["overview","transactions","investments"].forEach(s=>{ id(s).classList.toggle("hidden",S.screen!==s); document.querySelector(`[data-screen='${s}']`).classList.toggle("active",S.screen===s); });
+    const showInv=S.wallet==="other"; document.querySelector("[data-screen='investments']").classList.toggle("hidden",!showInv); if(!showInv && S.screen==="investments"){ S.screen="overview"; setScreens(); }
+    id("bottomTabs").style.gridTemplateColumns = showInv ? "repeat(3,1fr)" : "repeat(2,1fr)";
+    document.querySelectorAll("[data-wallet]").forEach(b=>b.classList.toggle("active",b.dataset.wallet===S.wallet));
+  }
+  function render(){ if(!S.raw) return; clearCharts(); if(S.wallet==="main") renderOverviewMain(); else renderOverviewOther(); renderTransactions(); renderInvestments(); setScreens(); applyPrivacy(); }
+
+  async function fetchData(showFailNotice=true){ try{ const r=await fetch(URL,{cache:"no-store"}); if(!r.ok) throw 0; const d=await r.json(); S.raw=d; localStorage.setItem(KEY,JSON.stringify(d)); E.cacheNotice.classList.add("hidden"); render(); return true; }catch{ if(showFailNotice&&S.raw) E.cacheNotice.classList.remove("hidden"); return false; } }
+  function loadCache(){ try{ const v=localStorage.getItem(KEY); if(!v) return false; S.raw=JSON.parse(v); return true; }catch{return false;} }
+
+  function bindUI(){
+    document.querySelectorAll("[data-wallet]").forEach(b=>b.onclick=()=>{S.wallet=b.dataset.wallet; render(); setScreens();});
+    document.querySelectorAll("[data-screen]").forEach(b=>b.onclick=()=>{S.screen=b.dataset.screen; setScreens();});
+    id("privacyBtn").onclick=()=>{S.privacy=!S.privacy; applyPrivacy();}; E.ov.onclick=closePanel;
+    let sy=0,p=false; window.addEventListener("touchstart",e=>{ if(window.scrollY===0){ sy=e.touches[0].clientY; p=true; } },{passive:true});
+    window.addEventListener("touchmove",e=>{ if(!p) return; if(e.touches[0].clientY-sy>40) E.pull.textContent="Release to refresh"; },{passive:true});
+    window.addEventListener("touchend",async()=>{ if(!p) return; p=false; if(E.pull.textContent){ E.pull.textContent="Refreshing..."; await fetchData(false); E.pull.textContent=""; } });
+  }
+
+  async function start(){
+    bindUI();
+    const cached=loadCache();
+    if(cached){ render(); E.app.style.visibility="visible"; E.loading.classList.add("hidden"); await fetchData(true); }
+    else { const ok=await fetchData(false); if(!ok){ E.loading.innerHTML="<div class='card'>Unable to load data</div>"; return; } E.app.style.visibility="visible"; E.loading.classList.add("hidden"); }
+    E.updated.textContent = `Last updated: ${fmt.dt(S.raw.generated_at || new Date().toISOString())}`;
+    if("serviceWorker" in navigator){ try{ await navigator.serviceWorker.register("./service-worker.js"); }catch{} }
+  }
+  start();
+})();
+</script>
+</body>
+</html>
