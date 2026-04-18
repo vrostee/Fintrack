@@ -26,10 +26,11 @@
     .value{font-size:16px;font-weight:700}.kpi .value{font-size:17px}.delta{font-size:9px}.up{color:var(--income)}.down{color:var(--expense)}
     canvas{width:100%!important;height:205px!important}.mini canvas{height:175px!important}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stack{display:grid;grid-template-columns:1fr;gap:8px}.table{width:100%;border-collapse:collapse;font-size:10px}.table th,.table td{text-align:left;padding:6px 4px;border-bottom:1px solid rgba(30,45,61,.5)}
-    #chType{height:auto!important;min-height:120px!important;max-height:280px!important}
+    #chType{height:44px!important;min-height:unset!important;max-height:unset!important}
     #chDonut{height:150px!important;max-width:220px!important;margin:0 auto}
     .badge{border-radius:999px;padding:2px 7px;font-size:8px;border:1px solid var(--border);background:#0b1118}.money.blur{filter:blur(8px)}
     .progress{height:7px;background:#0b1118;border:1px solid var(--border);border-radius:999px;overflow:hidden}.bar{height:100%}
+    .bud-ok{background:linear-gradient(90deg,rgba(0,229,160,0.25),#00b37a)}.bud-warn{background:linear-gradient(90deg,rgba(255,179,71,0.25),#ffb347)}.bud-over{background:linear-gradient(90deg,rgba(255,77,109,0.15),#c94060)}
     .notice{background:rgba(255,191,0,.08);border:1px solid rgba(255,191,0,.3);color:#ffd37a;padding:7px 10px;border-radius:10px;font-size:12px}
     .search{display:grid;grid-template-columns:1fr auto auto;gap:6px}.input,.sel{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;color:var(--text)}
     .scroller{scrollbar-width:thin;scrollbar-color:#2a3f55 #0d1219}
@@ -95,15 +96,21 @@
     dt(iso){ const d=new Date(iso); const p=x=>String(x).padStart(2,"0"); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`; },
     parseDate(s){ const [dd,mm,yy]=(s||"").split("/").map(Number); return new Date(yy||0,(mm||1)-1,dd||1); }
   };
+
+  // --- base row helpers ---
   function txBase(){ if(!S.raw) return []; return [...(S.raw.transactions||[]),...(S.raw.cc_transactions||[])].filter(t=>!t["Is Excluded"]&&!EXCL_ALL.has(t.Type)); }
   function byWallet(group){ const set=new Set(group); return txBase().filter(t=>set.has(t.Wallet)); }
+  // debit only, Saving+Investment(In) excluded — matches dashboard TX_DEBIT
+  function debitRows(monthFilter){ return txBase().filter(t=>DEBIT.includes(t.Wallet)&&!EXCL_EXP.has(t.Type)&&(!monthFilter||t.Month===monthFilter)); }
+  // saving rows separately — debit wallet, type=Saving, outflow only
+  function savingRows(monthFilter){ return txBase().filter(t=>DEBIT.includes(t.Wallet)&&t.Type==="Saving"&&Number(t.Amount)<0&&(!monthFilter||t.Month===monthFilter)); }
+
   function sum(rows,p=()=>true){ return rows.filter(p).reduce((a,b)=>a+Number(b.Amount||0),0); }
-  function savingSum(rows){ return rows.filter(t=>t.Type==="Saving").reduce((a,t)=>a+Math.abs(Number(t.Amount||0)),0); }
   function expAbs(rows,p=()=>true){ return rows.filter(p).filter(t=>Number(t.Amount)<0).reduce((a,b)=>a+Math.abs(Number(b.Amount||0)),0); }
   function months(rows){ return [...new Set(rows.map(t=>t.Month).filter(Boolean))].sort(); }
   function years(rows){ return [...new Set(rows.map(t=>t.Year).filter(Boolean))].sort((a,b)=>a-b); }
   function dlt(cur,prev){ if(!prev) return {pct:0,up:cur>=0}; const pct=((cur-prev)/Math.abs(prev))*100; return {pct,up:pct>=0}; }
-  function tColor(t){ return ({Needs:"#00e5a0",Wants:"#ff4d6d",Saving:"#658DA8",Installment:"#ffb347","Credit Card":"#00d4ff","Annual Expense":"#38bdf8",Income:"#00e5a0",Gifts:"#c084fc",Others:"#4d6b85","Investment (In)":"#38bdf8"})[t]||"#4d6b85"; }
+  function tColor(t){ return ({Needs:"#006b4a",Wants:"#7a1530",Saving:"#3d5f72",Installment:"#8a5e10","Credit Card":"#006080","Annual Expense":"#1a5a78",Income:"#006b4a",Gifts:"#5a2878",Others:"#2e3a42","Investment (In)":"#1a5a78"})[t]||"#2e3a42"; }
   function tPill(t){
     const p = {Needs:["#071a14","#00e5a0"],Wants:["#1a070d","#ff4d6d"],Saving:["#0c141a","#658DA8"],Installment:["#1a1407","#ffb347"],"Credit Card":["#071420","#00d4ff"],"Annual Expense":["#071020","#38bdf8"],Income:["#07160f","#00e5a0"],Gifts:["#130720","#c084fc"],Others:["#0d1219","#4d6b85"]}[t] || ["#0d1219","#4d6b85"];
     return `background:${p[0]};color:${p[1]};border-color:${p[1]}33`;
@@ -131,32 +138,132 @@
   function table(rows,total,withType){ const tot=Math.abs(total)||1; return `<table class="table mono"><thead><tr><th>${withType?"Parent Category":"Category"}</th>${withType?"<th>Type</th>":""}<th>Amount</th><th>%</th></tr></thead><tbody>${rows.map(([k,v])=>`<tr><td>${esc(k)}</td>${withType?`<td><span class="badge" style="${tPill('Others')}">Type</span></td>`:""}<td class="money">${fmt.num(Math.abs(v))}</td><td>${((Math.abs(v)/tot)*100).toFixed(1)}%</td></tr>`).join("")}</tbody></table>`; }
 
   function renderOverviewMain(){
-    const rows = byWallet(MAIN), mths = months(rows); S.month = S.month || mths[mths.length-1] || "";
-    const cur = rows.filter(t=>t.Month===S.month), prevM = mths[Math.max(0,mths.indexOf(S.month)-1)]||"", prev = rows.filter(t=>t.Month===prevM);
-    const income = sum(cur,t=>Number(t.Amount)>0), expense = expAbs(cur,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)), saving = savingSum(cur), net = sum(cur);
-    const expBreak = Object.entries(cur.filter(t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
-    const incBreak = Object.entries(cur.filter(t=>Number(t.Amount)>0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
-    const totalExp = expBreak.reduce((a,b)=>a+b[1],0)||1, totalInc = incBreak.reduce((a,b)=>a+b[1],0)||1;
-    const typeTotals = Object.entries(cur.filter(t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)).reduce((m,t)=>((m[t.Type]=(m[t.Type]||0)+Math.abs(Number(t.Amount))),m),{}));
-    const typeExpenseTotal = typeTotals.reduce((a,[,v])=>a+v,0)||1;
-    const typePcts = typeTotals.map(([t,v])=>({t,p:typeExpenseTotal?(v/typeExpenseTotal*100):0,v})).sort((a,b)=>b.p-a.p);
-    const needs = Object.entries(cur.filter(t=>t.Type==="Needs"&&Number(t.Amount)<0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).slice(0,8);
-    const wants = Object.entries(cur.filter(t=>t.Type==="Wants"&&Number(t.Amount)<0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).slice(0,8);
-    const buds = Object.entries(S.raw.budgets||{}).map(([p,l])=>{ const u=expAbs(cur,t=>t["Parent Category"]===p); const L=Math.abs(Number(l||0)); return {p,l:L,u,pct:L?u/L*100:0};});
+    // --- match dashboard exactly: debit only, saving separate ---
+    const allDebit = debitRows();
+    const mths = months(allDebit);
+    S.month = S.month || mths[mths.length-1] || "";
+
+    const cur = debitRows(S.month);
+
+    // prev month: calculate proper calendar prev, not array index
+    const prevM = (()=>{
+      const i = mths.indexOf(S.month);
+      if(i <= 0) return "";
+      return mths[i-1]; // already sorted, safe to use adjacent
+    })();
+    const prev = debitRows(prevM);
+
+    // totals — matches dashboard renderMain exactly
+    const income = sum(cur, t=>Number(t.Amount)>0);
+    const expense = expAbs(cur, t=>Number(t.Amount)<0);
+    const saving = savingRows(S.month).reduce((a,t)=>a+Math.abs(Number(t.Amount)),0);
+    const net = income - expense - saving;
+
+    const prevIncome = sum(prev, t=>Number(t.Amount)>0);
+    const prevExpense = expAbs(prev, t=>Number(t.Amount)<0);
+    const prevSaving = savingRows(prevM).reduce((a,t)=>a+Math.abs(Number(t.Amount)),0);
+    const prevNet = prevIncome - prevExpense - prevSaving;
+
+    // income breakdown — by Category, positive only
+    const incBreak = Object.entries(cur.filter(t=>Number(t.Amount)>0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Number(t.Amount)),m),{})).sort((a,b)=>b[1]-a[1]);
+    const totalInc = incBreak.reduce((a,b)=>a+b[1],0)||1;
+
+    // expense type totals — for stacked bar (all expense types from cur)
+    const typeTotals = Object.entries(cur.filter(t=>Number(t.Amount)<0).reduce((m,t)=>((m[t.Type]=(m[t.Type]||0)+Math.abs(Number(t.Amount))),m),{}));
+    const typeTotal = typeTotals.reduce((a,[,v])=>a+v,0)||1;
+    const typePcts = typeTotals.map(([t,v])=>({t,p:(v/typeTotal*100),v})).sort((a,b)=>b.p-a.p);
+
+    // needs / wants — by Parent Category (matches dashboard)
+    const needs = Object.entries(cur.filter(t=>t.Type==="Needs"&&Number(t.Amount)<0).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]).slice(0,15);
+    const wants = Object.entries(cur.filter(t=>t.Type==="Wants"&&Number(t.Amount)<0).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]).slice(0,15);
+
+    // parent breakdown — includes saving rows, sorted by type order (matches dashboard parentEntries)
+    const savCur = savingRows(S.month);
+    const parentMap = {};
+    cur.filter(t=>Number(t.Amount)<0).forEach(t=>{
+      const p = t["Parent Category"]||"Other";
+      if(!parentMap[p]) parentMap[p]={total:0,type:t.Type};
+      parentMap[p].total += Math.abs(Number(t.Amount));
+    });
+    savCur.forEach(t=>{
+      const p = t["Parent Category"]||"Saving";
+      if(!parentMap[p]) parentMap[p]={total:0,type:"Saving"};
+      parentMap[p].total += Math.abs(Number(t.Amount));
+    });
+    const TYPE_ORDER={Needs:0,Wants:1,Installment:2,"Credit Card":3,"Annual Expense":4,Saving:5,Income:6,Gifts:7,Others:8};
+    const expBreak = Object.entries(parentMap).sort((a,b)=>{
+      const oa=TYPE_ORDER[a[1].type]??99, ob=TYPE_ORDER[b[1].type]??99;
+      return oa!==ob ? oa-ob : b[1].total-a[1].total;
+    });
+    const parentTotal = expBreak.reduce((a,[,v])=>a+v.total,0)||1;
+
+    // budget — actuals from cur expenses only by Parent Category (matches dashboard actualMap)
+    const actualMap = {};
+    cur.filter(t=>Number(t.Amount)<0).forEach(t=>{
+      const p = t["Parent Category"]||"Other";
+      actualMap[p] = (actualMap[p]||0) + Math.abs(Number(t.Amount));
+    });
+    const buds = Object.entries(S.raw.budgets||{}).map(([p,l])=>{
+      const L = Math.abs(Number(l||0));
+      const u = actualMap[p]||0;
+      return {p,l:L,u,pct:L?(u/L)*100:0};
+    });
+
     E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Main Wallets</div><select id="monthSel" class="sel mono">${mths.map(m=>`<option ${m===S.month?"selected":""}>${m}</option>`).join("")}</select></div>
-    <div class="kpis">${kpi("income","Total Income",income,dlt(income,sum(prev,t=>Number(t.Amount)>0)))}${kpi("expense","Total Expenses",-expense,dlt(expense,expAbs(prev,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type))))}${kpi("saving","Saving",saving,dlt(saving,savingSum(prev)))}${kpi("balance","Net Balance",net,dlt(net,sum(prev)))}</div>
+    <div class="kpis">${kpi("income","Total Income",income,dlt(income,prevIncome))}${kpi("expense","Total Expenses",expense,dlt(expense,prevExpense))}${kpi("saving","Saving",saving,dlt(saving,prevSaving))}${kpi("balance","Net Balance",net,dlt(net,prevNet))}</div>
     <div class="card"><div class="title">Monthly Trend (current year)</div><canvas id="chMainTrend"></canvas></div>
-    <div class="card mini"><div class="title">Expense Split by Type (%)</div><canvas id="chType"></canvas></div>
-    <div class="stack"><div class="card mini"><div class="title">Needs by Category</div><canvas id="chNeeds"></canvas></div><div class="card mini"><div class="title">Wants by Category</div><canvas id="chWants"></canvas></div></div>
-    <div class="card"><div class="title">Budget Utilization</div>${buds.map(b=>{const c=b.pct<70?"#00b37a":b.pct<100?"#ffbf00":"#c94060"; return `<div style="margin:8px 0"><div class="row"><span>${esc(b.p)}</span><span class="mono muted budget-num">${fmt.num(Math.abs(b.u))} / ${fmt.num(Math.abs(b.l))}</span></div><div class="progress"><div class="bar" style="width:${Math.min(100,b.pct)}%;background:${c}"></div></div></div>`;}).join("")}</div>
-    <div class="card"><div class="title">Expenses Breakdown</div>${table(expBreak,totalExp,true)}</div><div class="card"><div class="title">Income Breakdown</div>${table(incBreak,totalInc,false)}</div>`;
+    <div class="card"><div class="title">Expense Split by Type</div><div style="position:relative;height:44px"><canvas id="chType" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas></div></div>
+    <div class="stack"><div class="card mini"><div class="title">Needs by Parent Category</div><canvas id="chNeeds"></canvas></div><div class="card mini"><div class="title">Wants by Parent Category</div><canvas id="chWants"></canvas></div></div>
+    <div class="card"><div class="title">Budget Utilization</div>${buds.map(b=>{
+      const cls=b.pct>=100?"bud-over":b.pct>=80?"bud-warn":"bud-ok";
+      const lc=b.pct>=100?"var(--expense)":b.pct>=80?"var(--warn)":"var(--income)";
+      return `<div style="margin:8px 0"><div class="row"><span style="font-size:11px">${esc(b.p)}</span><span class="mono budget-num" style="color:${lc}">${b.pct.toFixed(0)}%</span></div><div class="progress"><div class="bar ${cls}" style="width:${Math.min(100,b.pct).toFixed(1)}%"></div></div><div class="muted" style="font-size:9px;margin-top:2px">${fmt.num(b.u)} / ${fmt.num(b.l)}</div></div>`;
+    }).join("")}</div>
+    <div class="card"><div class="title">Expenses Breakdown</div><table class="table mono"><thead><tr><th>Parent Category</th><th>Type</th><th>Amount</th><th>%</th></tr></thead><tbody>${expBreak.map(([k,v])=>{
+      const pct=((v.total/parentTotal)*100).toFixed(1);
+      return `<tr><td>${esc(k)}</td><td><span class="badge" style="${tPill(v.type)}">${esc(v.type)}</span></td><td class="money">${fmt.num(v.total)}</td><td>${pct}%</td></tr>`;
+    }).join("")}<tr><td colspan="2" class="muted" style="font-size:9px">Total</td><td class="money">${fmt.num(parentTotal)}</td><td>100%</td></tr></tbody></table></div>
+    <div class="card"><div class="title">Income Breakdown</div>${table(incBreak,totalInc,false)}</div>`;
+
     id("monthSel").onchange=e=>{S.month=e.target.value; render();};
+
+    // monthly trend — debit rows for the current year
     const y=S.month.slice(0,4), ym=mths.filter(m=>m.startsWith(y));
-    S.charts.mainTrend = new Chart(id("chMainTrend"), chartCfg("line",{labels:ym,datasets:[{label:"Income",data:ym.map(m=>sum(rows.filter(t=>t.Month===m),t=>Number(t.Amount)>0)),borderColor:"#00916b",backgroundColor:"rgba(0,145,107,0.18)",fill:true,tension:.35},{label:"Expense",data:ym.map(m=>expAbs(rows.filter(t=>t.Month===m),t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type))),borderColor:"#a0203a",backgroundColor:"rgba(160,32,58,0.18)",fill:true,tension:.35}]}));
-    const chTypeEl=id("chType"); chTypeEl.style.height=Math.min(280,Math.max(120,typePcts.length*26))+"px";
-    if(typePcts.length) S.charts.type = new Chart(chTypeEl,{type:"bar",data:{labels:typePcts.map(x=>x.t),datasets:[{label:"% of expenses",data:typePcts.map(x=>+x.p.toFixed(2)),backgroundColor:typePcts.map(x=>tColor(x.t)),barThickness:12,maxBarThickness:14,borderRadius:4}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.x.toFixed(1)}%`}}},scales:{x:{min:0,max:100,ticks:{color:"#4d6b85",font:{size:10,family:appleFont},callback:v=>v+"%"},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#d4e8f7",font:{size:10,family:appleFont}},grid:{display:false}}}}});
-    S.charts.needs = new Chart(id("chNeeds"), chartCfg("bar",{labels:needs.map(x=>x[0]),datasets:[{label:"Needs",data:needs.map(x=>x[1]),backgroundColor:"#c94060"}]}, false, true));
-    S.charts.wants = new Chart(id("chWants"), chartCfg("bar",{labels:wants.map(x=>x[0]),datasets:[{label:"Wants",data:wants.map(x=>x[1]),backgroundColor:"#ff4d6d"}]}, false, true));
+    S.charts.mainTrend = new Chart(id("chMainTrend"), chartCfg("line",{labels:ym,datasets:[
+      {label:"Income",data:ym.map(m=>sum(debitRows(m),t=>Number(t.Amount)>0)),borderColor:"#00916b",backgroundColor:"rgba(0,145,107,0.18)",fill:true,tension:.35},
+      {label:"Expense",data:ym.map(m=>expAbs(debitRows(m),t=>Number(t.Amount)<0)),borderColor:"#a0203a",backgroundColor:"rgba(160,32,58,0.18)",fill:true,tension:.35}
+    ]}));
+
+    // stacked 100% horizontal bar — matches dashboard chart-type-top
+    const chTypeEl = id("chType");
+    if(typePcts.length) S.charts.type = new Chart(chTypeEl,{
+      type:"bar",
+      data:{labels:[""],datasets:typePcts.map(x=>({
+        label:x.t,
+        data:[+x.p.toFixed(2)],
+        backgroundColor:tColor(x.t),
+        borderWidth:0,
+        barPercentage:0.5,
+        categoryPercentage:1.0
+      }))},
+      options:{
+        indexAxis:"x",
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw.toFixed(1)}%`}}
+        },
+        scales:{
+          x:{stacked:true,display:false,grid:{display:false}},
+          y:{stacked:true,display:false,max:100,grid:{display:false}}
+        }
+      }
+    });
+
+    // needs / wants charts — horizontal bar, by parent category
+    S.charts.needs = new Chart(id("chNeeds"),{type:"bar",data:{labels:needs.map(x=>x[0]),datasets:[{data:needs.map(x=>x[1]),backgroundColor:"rgba(0,120,80,0.35)",borderColor:"#007a50",borderWidth:1,borderRadius:3}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{display:false}}}}});
+    S.charts.wants = new Chart(id("chWants"),{type:"bar",data:{labels:wants.map(x=>x[0]),datasets:[{data:wants.map(x=>x[1]),backgroundColor:"rgba(160,30,55,0.4)",borderColor:"#a01e37",borderWidth:1,borderRadius:3}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{display:false}}}}});
   }
 
   function renderOverviewOther(){
@@ -170,7 +277,7 @@
     const pBreak=Object.entries(cur.filter(t=>Number(t.Amount)<0).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
     const iBreak=Object.entries(cur.filter(t=>Number(t.Amount)>0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
     E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Other Wallets</div><select id="yearSel" class="sel mono">${yrs.map(y=>`<option ${String(y)===String(S.year)?"selected":""}>${y}</option>`).join("")}</select></div>
-    <div class="grid2">${kpi("income","Total Inflow",inflow,{pct:0,up:true},false)}${kpi("expense","Total Spending",-spending,{pct:0,up:false},false)}</div><div class="card kpi balance"><div class="muted">Net Balance</div><div class="value mono money">${fmt.num(net)}</div></div>
+    <div class="grid2">${kpi("income","Total Inflow",inflow,{pct:0,up:true},false)}${kpi("expense","Total Spending",spending,{pct:0,up:false},false)}</div><div class="card kpi balance"><div class="muted">Net Balance</div><div class="value mono money">${fmt.num(net)}</div></div>
     <div class="card"><div class="title">Cumulative Savings (all time)</div><canvas id="chCum"></canvas></div>
     <div class="card"><div class="title">Spending Heatmap (12 months)</div><div style="overflow:auto"><table class="table mono"><thead><tr><th>Parent</th>${recent.map(m=>`<th>${m.slice(5)}</th>`).join("")}</tr></thead><tbody>${heat.map(h=>`<tr><td>${esc(h.pc)}</td>${h.vals.map(v=>`<td style="background:rgba(201,64,96,${(v/maxH*.8).toFixed(2)})"></td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
     <div class="card"><div class="title">Yearly Inflow vs Spending</div><canvas id="chYearly"></canvas></div>
