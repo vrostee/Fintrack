@@ -9,8 +9,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root{--bg:#080c12;--card:#0d1219;--surface:#131b24;--hover:#1a2332;--border:#1e2d3d;--border-active:#2a3f55;--text:#d4e8f7;--muted:#4d6b85;--accent:#E8E0E3;--accent-2:#C4B8BC;--income:#00b37a;--expense:#c94060;--saving:#658DA8;--warn:#ffb347;--inv:#38bdf8;--safe-bottom:env(safe-area-inset-bottom,0px);--safe-top:env(safe-area-inset-top,0px)}
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px;max-width:390px;margin-inline:auto;min-height:100dvh;padding-top:var(--safe-top);overflow-x:hidden}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.hidden{display:none!important}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,sans-serif;font-size:13px;max-width:390px;margin-inline:auto;min-height:100dvh;padding-top:var(--safe-top);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+    .mono{font-family:"SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.hidden{display:none!important}
     .top{position:sticky;top:0;z-index:30;background:rgba(8,12,18,.88);backdrop-filter:blur(12px);border-bottom:1px solid rgba(30,45,61,.4);padding:12px 14px}
     .row{display:flex;align-items:center;justify-content:space-between;gap:8px}.small{font-size:10px;color:var(--muted)}
     .seg,.tabs,.toggle{display:grid;gap:6px;background:#0b1118;border:1px solid var(--border);border-radius:999px;padding:4px}
@@ -18,15 +18,15 @@
     button,select,input{font:inherit;color:inherit}.btn{border:0;background:transparent;color:var(--muted);padding:7px 9px;border-radius:999px;font-weight:600}.btn.active{background:var(--hover);color:var(--accent)}
     .iconbtn{display:grid;place-items:center;width:36px;height:36px;padding:0}
     .icon{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-    .app{padding-bottom:calc(72px + var(--safe-bottom))}.content{padding:12px 14px 18px;display:grid;gap:10px}
-    #overview,#transactions,#investments{display:grid;gap:2px}
+    .app{padding-bottom:calc(72px + var(--safe-bottom))}.content{padding:12px 14px 18px;display:grid;gap:5px}
+    #overview,#transactions,#investments{display:grid;gap:5px}
     .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px}.title{font-size:12px;font-weight:700;margin-bottom:7px}.muted{color:var(--muted)}
     .kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}.kpi{position:relative;overflow:hidden}.kpi::before{content:"";position:absolute;left:0;right:0;top:0;height:2px}
     .kpi.income::before{background:var(--income);box-shadow:0 0 10px var(--income)}.kpi.expense::before{background:var(--expense);box-shadow:0 0 10px var(--expense)}.kpi.saving::before{background:var(--saving);box-shadow:0 0 10px var(--saving)}.kpi.balance::before{background:var(--accent);box-shadow:0 0 10px rgba(232,224,227,.6)}
     .value{font-size:16px;font-weight:700}.kpi .value{font-size:17px}.delta{font-size:9px}.up{color:var(--income)}.down{color:var(--expense)}
     canvas{width:100%!important;height:205px!important}.mini canvas{height:175px!important}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stack{display:grid;grid-template-columns:1fr;gap:8px}.table{width:100%;border-collapse:collapse;font-size:10px}.table th,.table td{text-align:left;padding:6px 4px;border-bottom:1px solid rgba(30,45,61,.5)}
-    #chType{height:92px!important}
+    #chType{height:auto!important;min-height:120px!important;max-height:280px!important}
     #chDonut{height:150px!important;max-width:220px!important;margin:0 auto}
     .badge{border-radius:999px;padding:2px 7px;font-size:8px;border:1px solid var(--border);background:#0b1118}.money.blur{filter:blur(8px)}
     .progress{height:7px;background:#0b1118;border:1px solid var(--border);border-radius:999px;overflow:hidden}.bar{height:100%}
@@ -72,7 +72,7 @@
   <button class="btn" data-screen="transactions">Transactions</button>
   <button class="btn" data-screen="investments">Investments</button>
 </nav>
-<div id="ov" class="ov"></div><aside id="panel" class="panel"></aside>
+<div id="ov" class="ov"></div><aside id="panel" class="panel scroller"></aside>
 
 <script>
 (() => {
@@ -98,6 +98,7 @@
   function txBase(){ if(!S.raw) return []; return [...(S.raw.transactions||[]),...(S.raw.cc_transactions||[])].filter(t=>!t["Is Excluded"]&&!EXCL_ALL.has(t.Type)); }
   function byWallet(group){ const set=new Set(group); return txBase().filter(t=>set.has(t.Wallet)); }
   function sum(rows,p=()=>true){ return rows.filter(p).reduce((a,b)=>a+Number(b.Amount||0),0); }
+  function savingSum(rows){ return rows.filter(t=>t.Type==="Saving").reduce((a,t)=>a+Math.abs(Number(t.Amount||0)),0); }
   function expAbs(rows,p=()=>true){ return rows.filter(p).filter(t=>Number(t.Amount)<0).reduce((a,b)=>a+Math.abs(Number(b.Amount||0)),0); }
   function months(rows){ return [...new Set(rows.map(t=>t.Month).filter(Boolean))].sort(); }
   function years(rows){ return [...new Set(rows.map(t=>t.Year).filter(Boolean))].sort((a,b)=>a-b); }
@@ -107,12 +108,13 @@
     const p = {Needs:["#071a14","#00e5a0"],Wants:["#1a070d","#ff4d6d"],Saving:["#0c141a","#658DA8"],Installment:["#1a1407","#ffb347"],"Credit Card":["#071420","#00d4ff"],"Annual Expense":["#071020","#38bdf8"],Income:["#07160f","#00e5a0"],Gifts:["#130720","#c084fc"],Others:["#0d1219","#4d6b85"]}[t] || ["#0d1219","#4d6b85"];
     return `background:${p[0]};color:${p[1]};border-color:${p[1]}33`;
   }
+  const appleFont="-apple-system,BlinkMacSystemFont,sans-serif";
   function chartCfg(type,data,stack=false,h=false){
-    const base = {responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7}}}}};
+    const base = {responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}}};
     if(type==="doughnut"){
-      return {type,data,options:{...base,cutout:"72%",radius:"84%",plugins:{legend:{position:"bottom",labels:{color:"#d4e8f7",font:{size:8},usePointStyle:true,padding:10}}}}};
+      return {type,data,options:{...base,cutout:"72%",radius:"84%",plugins:{legend:{position:"bottom",labels:{color:"#d4e8f7",font:{size:8,family:appleFont},usePointStyle:true,padding:10}}}}};
     }
-    return {type,data,options:{...base,scales:{x:{stacked:stack,ticks:{color:"#4d6b85",font:{size:7}},grid:{color:"#1e2d3d"}},y:{stacked:stack,ticks:{color:"#4d6b85",font:{size:7}},grid:{color:"#1e2d3d"}}},indexAxis:h?"y":"x"}};
+    return {type,data,options:{...base,scales:{x:{stacked:stack,ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{stacked:stack,ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}}},indexAxis:h?"y":"x"}};
   }
   function clearCharts(){ Object.values(S.charts).forEach(c=>c&&c.destroy&&c.destroy()); S.charts={}; }
   function applyPrivacy(){
@@ -126,30 +128,33 @@
   }
 
   function kpi(kind,name,val,dd,delta=true){ return `<div class="card kpi ${kind}"><div class="muted">${name}</div><div class="value mono money">${fmt.num(val)}</div>${delta?`<div class="delta ${dd.up?"up":"down"}">${dd.up?"▲":"▼"} ${Math.abs(dd.pct).toFixed(1)}% vs prev month</div>`:""}</div>`; }
-  function table(rows,total,withType){ return `<table class="table mono"><thead><tr><th>${withType?"Parent Category":"Category"}</th>${withType?"<th>Type</th>":""}<th>Amount</th><th>%</th></tr></thead><tbody>${rows.map(([k,v])=>`<tr><td>${esc(k)}</td>${withType?`<td><span class="badge" style="${tPill('Others')}">Type</span></td>`:""}<td class="money">${fmt.num(-Math.abs(v))}</td><td>${((v/total)*100).toFixed(1)}%</td></tr>`).join("")}</tbody></table>`; }
+  function table(rows,total,withType){ const tot=Math.abs(total)||1; return `<table class="table mono"><thead><tr><th>${withType?"Parent Category":"Category"}</th>${withType?"<th>Type</th>":""}<th>Amount</th><th>%</th></tr></thead><tbody>${rows.map(([k,v])=>`<tr><td>${esc(k)}</td>${withType?`<td><span class="badge" style="${tPill('Others')}">Type</span></td>`:""}<td class="money">${fmt.num(Math.abs(v))}</td><td>${((Math.abs(v)/tot)*100).toFixed(1)}%</td></tr>`).join("")}</tbody></table>`; }
 
   function renderOverviewMain(){
     const rows = byWallet(MAIN), mths = months(rows); S.month = S.month || mths[mths.length-1] || "";
     const cur = rows.filter(t=>t.Month===S.month), prevM = mths[Math.max(0,mths.indexOf(S.month)-1)]||"", prev = rows.filter(t=>t.Month===prevM);
-    const income = sum(cur,t=>Number(t.Amount)>0), expense = expAbs(cur,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)), saving = income-expense, net = sum(cur);
+    const income = sum(cur,t=>Number(t.Amount)>0), expense = expAbs(cur,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)), saving = savingSum(cur), net = sum(cur);
     const expBreak = Object.entries(cur.filter(t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
-    const incBreak = Object.entries(cur.filter(t=>Number(t.Amount)>0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Number(t.Amount)),m),{})).sort((a,b)=>b[1]-a[1]);
+    const incBreak = Object.entries(cur.filter(t=>Number(t.Amount)>0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
     const totalExp = expBreak.reduce((a,b)=>a+b[1],0)||1, totalInc = incBreak.reduce((a,b)=>a+b[1],0)||1;
     const typeTotals = Object.entries(cur.filter(t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)).reduce((m,t)=>((m[t.Type]=(m[t.Type]||0)+Math.abs(Number(t.Amount))),m),{}));
+    const typeExpenseTotal = typeTotals.reduce((a,[,v])=>a+v,0)||1;
+    const typePcts = typeTotals.map(([t,v])=>({t,p:typeExpenseTotal?(v/typeExpenseTotal*100):0,v})).sort((a,b)=>b.p-a.p);
     const needs = Object.entries(cur.filter(t=>t.Type==="Needs"&&Number(t.Amount)<0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).slice(0,8);
     const wants = Object.entries(cur.filter(t=>t.Type==="Wants"&&Number(t.Amount)<0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).slice(0,8);
-    const buds = Object.entries(S.raw.budgets||{}).map(([p,l])=>{ const u=expAbs(cur,t=>t["Parent Category"]===p); return {p,l:Number(l||0),u,pct:l?u/l*100:0};});
+    const buds = Object.entries(S.raw.budgets||{}).map(([p,l])=>{ const u=expAbs(cur,t=>t["Parent Category"]===p); const L=Math.abs(Number(l||0)); return {p,l:L,u,pct:L?u/L*100:0};});
     E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Main Wallets</div><select id="monthSel" class="sel mono">${mths.map(m=>`<option ${m===S.month?"selected":""}>${m}</option>`).join("")}</select></div>
-    <div class="kpis">${kpi("income","Total Income",income,dlt(income,sum(prev,t=>Number(t.Amount)>0)))}${kpi("expense","Total Expenses",-expense,dlt(expense,expAbs(prev,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type))))}${kpi("saving","Saving",saving,dlt(saving,sum(prev)))}${kpi("balance","Net Balance",net,dlt(net,sum(prev)))}</div>
+    <div class="kpis">${kpi("income","Total Income",income,dlt(income,sum(prev,t=>Number(t.Amount)>0)))}${kpi("expense","Total Expenses",-expense,dlt(expense,expAbs(prev,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type))))}${kpi("saving","Saving",saving,dlt(saving,savingSum(prev)))}${kpi("balance","Net Balance",net,dlt(net,sum(prev)))}</div>
     <div class="card"><div class="title">Monthly Trend (current year)</div><canvas id="chMainTrend"></canvas></div>
-    <div class="card mini"><div class="title">Expense Split by Type</div><canvas id="chType"></canvas></div>
+    <div class="card mini"><div class="title">Expense Split by Type (%)</div><canvas id="chType"></canvas></div>
     <div class="stack"><div class="card mini"><div class="title">Needs by Category</div><canvas id="chNeeds"></canvas></div><div class="card mini"><div class="title">Wants by Category</div><canvas id="chWants"></canvas></div></div>
-    <div class="card"><div class="title">Budget Utilization</div>${buds.map(b=>{const c=b.pct<70?"#00b37a":b.pct<100?"#ffbf00":"#c94060"; return `<div style="margin:8px 0"><div class="row"><span>${esc(b.p)}</span><span class="mono muted budget-num">${fmt.num(-b.u)} / ${fmt.num(b.l)}</span></div><div class="progress"><div class="bar" style="width:${Math.min(100,b.pct)}%;background:${c}"></div></div></div>`;}).join("")}</div>
+    <div class="card"><div class="title">Budget Utilization</div>${buds.map(b=>{const c=b.pct<70?"#00b37a":b.pct<100?"#ffbf00":"#c94060"; return `<div style="margin:8px 0"><div class="row"><span>${esc(b.p)}</span><span class="mono muted budget-num">${fmt.num(Math.abs(b.u))} / ${fmt.num(Math.abs(b.l))}</span></div><div class="progress"><div class="bar" style="width:${Math.min(100,b.pct)}%;background:${c}"></div></div></div>`;}).join("")}</div>
     <div class="card"><div class="title">Expenses Breakdown</div>${table(expBreak,totalExp,true)}</div><div class="card"><div class="title">Income Breakdown</div>${table(incBreak,totalInc,false)}</div>`;
     id("monthSel").onchange=e=>{S.month=e.target.value; render();};
     const y=S.month.slice(0,4), ym=mths.filter(m=>m.startsWith(y));
     S.charts.mainTrend = new Chart(id("chMainTrend"), chartCfg("line",{labels:ym,datasets:[{label:"Income",data:ym.map(m=>sum(rows.filter(t=>t.Month===m),t=>Number(t.Amount)>0)),borderColor:"#00916b",backgroundColor:"rgba(0,145,107,0.18)",fill:true,tension:.35},{label:"Expense",data:ym.map(m=>expAbs(rows.filter(t=>t.Month===m),t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type))),borderColor:"#a0203a",backgroundColor:"rgba(160,32,58,0.18)",fill:true,tension:.35}]}));
-    S.charts.type = new Chart(id("chType"), chartCfg("bar",{labels:["Expenses"],datasets:typeTotals.map(([t,v])=>({label:t,data:[v],backgroundColor:tColor(t),stack:"a",barThickness:10,maxBarThickness:10,borderRadius:4}) )}, true, true));
+    const chTypeEl=id("chType"); chTypeEl.style.height=Math.min(280,Math.max(120,typePcts.length*26))+"px";
+    S.charts.type = new Chart(chTypeEl,{type:"bar",data:{labels:typePcts.map(x=>x.t),datasets:[{label:"% of expenses",data:typePcts.map(x=>+x.p.toFixed(2)),backgroundColor:typePcts.map(x=>tColor(x.t)),barThickness:12,maxBarThickness:14,borderRadius:4}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.x.toFixed(1)}%`}}},scales:{x:{min:0,max:100,ticks:{color:"#4d6b85",font:{size:10,family:appleFont},callback:v=>v+"%"},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#d4e8f7",font:{size:10,family:appleFont}},grid:{display:false}}}});
     S.charts.needs = new Chart(id("chNeeds"), chartCfg("bar",{labels:needs.map(x=>x[0]),datasets:[{label:"Needs",data:needs.map(x=>x[1]),backgroundColor:"#c94060"}]}, false, true));
     S.charts.wants = new Chart(id("chWants"), chartCfg("bar",{labels:wants.map(x=>x[0]),datasets:[{label:"Wants",data:wants.map(x=>x[1]),backgroundColor:"#ff4d6d"}]}, false, true));
   }
@@ -163,7 +168,7 @@
     const yIn=yrs.map(y=>sum(rows.filter(t=>t.Year===y),t=>Number(t.Amount)>0)), yOut=yrs.map(y=>expAbs(rows.filter(t=>t.Year===y),t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)));
     const wallets=OTHER.map(w=>({w,v:expAbs(cur.filter(t=>t.Wallet===w))+sum(cur.filter(t=>t.Wallet===w),t=>Number(t.Amount)>0)}));
     const pBreak=Object.entries(cur.filter(t=>Number(t.Amount)<0).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
-    const iBreak=Object.entries(cur.filter(t=>Number(t.Amount)>0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Number(t.Amount)),m),{})).sort((a,b)=>b[1]-a[1]);
+    const iBreak=Object.entries(cur.filter(t=>Number(t.Amount)>0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
     E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Other Wallets</div><select id="yearSel" class="sel mono">${yrs.map(y=>`<option ${String(y)===String(S.year)?"selected":""}>${y}</option>`).join("")}</select></div>
     <div class="grid2">${kpi("income","Total Inflow",inflow,{pct:0,up:true},false)}${kpi("expense","Total Spending",-spending,{pct:0,up:false},false)}</div><div class="card kpi balance"><div class="muted">Net Balance</div><div class="value mono money">${fmt.num(net)}</div></div>
     <div class="card"><div class="title">Cumulative Savings (all time)</div><canvas id="chCum"></canvas></div>
