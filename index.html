@@ -211,14 +211,14 @@
 
     E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Main Wallets</div><select id="monthSel" class="sel mono">${mths.map(m=>`<option ${m===S.month?"selected":""}>${m}</option>`).join("")}</select></div>
     <div class="kpis">${kpi("income","Total Income",income,dlt(income,prevIncome))}${kpi("expense","Total Expenses",expense,dlt(expense,prevExpense))}${kpi("saving","Saving",saving,dlt(saving,prevSaving))}${kpi("balance","Net Balance",net,dlt(net,prevNet))}</div>
-    <div class="card"><div class="title">Monthly Trend (current year)</div><canvas id="chMainTrend"></canvas></div>
-    <div class="card"><div class="title">Expense Split by Type</div><div style="position:relative;height:44px"><canvas id="chType" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas></div></div>
-    <div class="stack"><div class="card mini"><div class="title">Needs by Parent Category</div><canvas id="chNeeds"></canvas></div><div class="card mini"><div class="title">Wants by Parent Category</div><canvas id="chWants"></canvas></div></div>
     <div class="card"><div class="title">Budget Utilization</div>${buds.map(b=>{
       const cls=b.pct>=100?"bud-over":b.pct>=80?"bud-warn":"bud-ok";
       const lc=b.pct>=100?"var(--expense)":b.pct>=80?"var(--warn)":"var(--income)";
       return `<div style="margin:8px 0"><div class="row"><span style="font-size:11px">${esc(b.p)}</span><span class="mono budget-num" style="color:${lc}">${b.pct.toFixed(0)}%</span></div><div class="progress"><div class="bar ${cls}" style="width:${Math.min(100,b.pct).toFixed(1)}%"></div></div><div class="muted" style="font-size:9px;margin-top:2px">${fmt.num(b.u)} / ${fmt.num(b.l)}</div></div>`;
     }).join("")}</div>
+    <div class="card"><div class="title">Monthly Trend (current year)</div><canvas id="chMainTrend"></canvas></div>
+    <div class="card"><div class="title">Expense Split by Type</div><div style="position:relative;height:44px"><canvas id="chType" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas></div></div>
+    <div class="stack"><div class="card mini"><div class="title">Needs by Parent Category</div><canvas id="chNeeds"></canvas></div><div class="card mini"><div class="title">Wants by Parent Category</div><canvas id="chWants"></canvas></div></div>
     <div class="card"><div class="title">Expenses Breakdown</div><table class="table mono"><thead><tr><th>Parent Category</th><th>Type</th><th>Amount</th><th>%</th></tr></thead><tbody>${expBreak.map(([k,v])=>{
       const pct=((v.total/parentTotal)*100).toFixed(1);
       return `<tr><td>${esc(k)}</td><td><span class="badge" style="${tPill(v.type)}">${esc(v.type)}</span></td><td class="money">${fmt.num(v.total)}</td><td>${pct}%</td></tr>`;
@@ -247,7 +247,7 @@
         categoryPercentage:1.0
       }))},
       options:{
-        indexAxis:"x",
+        indexAxis:"y",
         responsive:true,
         maintainAspectRatio:false,
         plugins:{
@@ -255,8 +255,8 @@
           tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw.toFixed(1)}%`}}
         },
         scales:{
-          x:{stacked:true,display:false,grid:{display:false}},
-          y:{stacked:true,display:false,max:100,grid:{display:false}}
+          x:{stacked:true,display:false,max:100,grid:{display:false}},
+          y:{stacked:true,display:false,grid:{display:false}}
         }
       }
     });
@@ -302,7 +302,7 @@
     if(S.txSearch.trim()){ const q=S.txSearch.toLowerCase(); rows=rows.filter(t=>{ const f=S.txField==="All"?[t.Category,t["Parent Category"],t.Type,t.Wallet,t.Note]:[t[S.txField]||""]; return f.some(v=>String(v||"").toLowerCase().includes(q));});}
     rows.sort((a,b)=> S.txSort==="date_desc"?fmt.parseDate(b.Date)-fmt.parseDate(a.Date):S.txSort==="date_asc"?fmt.parseDate(a.Date)-fmt.parseDate(b.Date):S.txSort==="amount_desc"?Number(b.Amount)-Number(a.Amount):Number(a.Amount)-Number(b.Amount));
     E.tx.innerHTML = `<div class="card"><div class="title">Transactions</div>${S.wallet==="main"?`<div class="toggle" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><button class="btn ${S.txMode==="debit"?"active":""}" data-mode="debit">Debit</button><button class="btn ${S.txMode==="cc"?"active":""}" data-mode="cc">CC</button></div>`:""}
-    <div class="search"><input id="txSearch" class="input" placeholder="Search transactions" value="${esc(S.txSearch)}"><select id="txField" class="sel"><option>All</option><option>Category</option><option>Parent Category</option><option>Type</option><option>Wallet</option><option>Note</option></select><select id="txSort" class="sel"><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="amount_desc">Amount ↓</option><option value="amount_asc">Amount ↑</option></select></div>
+    <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:6px;margin-bottom:4px"><select id="txField" class="sel"><option>All</option><option>Category</option><option>Parent Category</option><option>Type</option><option>Wallet</option><option>Note</option></select><input id="txSearch" class="input" placeholder="Search..." value="${esc(S.txSearch)}"><select id="txSort" class="sel"><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="amount_desc">Amount ↓</option><option value="amount_asc">Amount ↑</option></select></div>
     <div class="scroller" style="margin-top:8px;max-height:58dvh;overflow:auto">${rows.map((t,i)=>`<button class="tx" data-i="${i}" style="width:100%;background:transparent;border:0;color:inherit;text-align:left"><span class="dot ${t.Flow==="Income"?"inc":"exp"}"></span><span><div>${esc(t.Category)} ${t.Note?`<span class="muted">- ${esc(t.Note)}</span>`:""}</div><div class="small">${esc(t.Wallet)} - ${esc(t.Date)} - <span class="badge" style="${tPill(t.Type)}">${esc(t.Type)}</span></div></span><span class="amount mono money" style="color:${t.Flow==="Income"?"var(--income)":"var(--expense)"}">${fmt.num(Number(t.Amount))}</span></button>`).join("")}</div></div>`;
     if(S.wallet==="main") document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{S.txMode=b.dataset.mode; renderTransactions(); applyPrivacy();});
     id("txField").value=S.txField; id("txSort").value=S.txSort;
