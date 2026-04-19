@@ -268,14 +268,14 @@
 
   function renderOverviewOther(){
     const rows=byWallet(OTHER), yrs=years(rows); S.year=S.year||yrs[yrs.length-1]||""; const cur=rows.filter(t=>t.Year==S.year);
-    const inflow=sum(cur,t=>Number(t.Amount)>0), spending=expAbs(cur,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)), net=sum(cur);
+    const inflow=sum(cur,t=>Number(t.Amount)>0&&t.Type!=="Investment (In)"), spending=expAbs(cur,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)), net=inflow-spending;
     const mths=months(rows), cum=[]; let run=0; mths.forEach(m=>{run+=sum(rows.filter(t=>t.Month===m)); cum.push(run);});
     const recent=mths.slice(-12), pcs=[...new Set(cur.filter(t=>Number(t.Amount)<0).map(t=>t["Parent Category"]))].slice(0,8);
     const heat=pcs.map(pc=>({pc,vals:recent.map(m=>expAbs(rows.filter(t=>t.Month===m),t=>t["Parent Category"]===pc))})), maxH=Math.max(1,...heat.flatMap(h=>h.vals));
-    const yIn=yrs.map(y=>sum(rows.filter(t=>t.Year===y),t=>Number(t.Amount)>0)), yOut=yrs.map(y=>expAbs(rows.filter(t=>t.Year===y),t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)));
+    const yIn=yrs.map(y=>sum(rows.filter(t=>t.Year===y),t=>Number(t.Amount)>0&&t.Type!=="Investment (In)")), yOut=yrs.map(y=>expAbs(rows.filter(t=>t.Year===y),t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)));
     const wallets=OTHER.map(w=>({w,v:expAbs(cur.filter(t=>t.Wallet===w))+sum(cur.filter(t=>t.Wallet===w),t=>Number(t.Amount)>0)}));
     const pBreak=Object.entries(cur.filter(t=>Number(t.Amount)<0).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
-    const iBreak=Object.entries(cur.filter(t=>Number(t.Amount)>0).reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
+    const iBreak=Object.entries(cur.filter(t=>Number(t.Amount)>0&&t.Type!=="Investment (In)").reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
     E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Other Wallets</div><select id="yearSel" class="sel mono">${yrs.map(y=>`<option ${String(y)===String(S.year)?"selected":""}>${y}</option>`).join("")}</select></div>
     <div class="grid2">${kpi("income","Total Inflow",inflow,{pct:0,up:true},false)}${kpi("expense","Total Spending",spending,{pct:0,up:false},false)}</div><div class="card kpi balance"><div class="muted">Net Balance</div><div class="value mono money">${fmt.num(net)}</div></div>
     <div class="card"><div class="title">Cumulative Savings (all time)</div><canvas id="chCum"></canvas></div>
