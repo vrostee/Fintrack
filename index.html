@@ -268,7 +268,7 @@
   function renderOverviewOther(){
     const rows=byWallet(OTHER), yrs=years(rows); if(S.year===null) S.year=String(yrs[yrs.length-1]||""); const cur=S.year==="__all__"?rows:rows.filter(t=>String(t.Year)===String(S.year));
     const inflow=sum(cur,t=>Number(t.Amount)>0&&t.Type!=="Investment (In)"), spending=expAbs(cur,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)), net=inflow-spending;
-    const mths=months(rows), cum=[]; let run=0; mths.forEach(m=>{run+=sum(rows.filter(t=>t.Month===m)); cum.push(run);});
+    const mths=months(rows), cum=[]; let run=0; mths.forEach(m=>{run+=sum(rows.filter(t=>t.Month===m),t=>Number(t.Amount)>0&&t.Type!=="Investment (In)"); cum.push(run);});
     const recent=mths.slice(-12), pcs=[...new Set(cur.filter(t=>Number(t.Amount)<0&&t["Parent Category"]!=="Investment").map(t=>t["Parent Category"]))].slice(0,8);
     const heat=pcs.map(pc=>({pc,vals:recent.map(m=>expAbs(rows.filter(t=>t.Month===m),t=>t["Parent Category"]===pc))})), maxH=Math.max(1,...heat.flatMap(h=>h.vals));
     const heatFmt=(v)=>v?fmt.num(v):"—";
