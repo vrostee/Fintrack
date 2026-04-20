@@ -114,6 +114,7 @@
     return `background:${p[0]};color:${p[1]};border-color:${p[1]}33`;
   }
   const appleFont="-apple-system,BlinkMacSystemFont,sans-serif";
+  const niceMax=(v)=>{ if(!v) return 0; const neg=v<0; const abs=Math.abs(v); const mag=Math.pow(10,Math.floor(Math.log10(abs))); const step=mag*(abs/mag<=2?0.5:abs/mag<=5?1:2); const r=Math.ceil(abs/step)*step; return neg?-r:r; };
   function chartCfg(type,data,stack=false,h=false){
     const base = {responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}}};
     if(type==="doughnut"){
@@ -232,7 +233,7 @@
     const expData=ym.map(m=>expAbs(debitRows(m),t=>Number(t.Amount)<0));
     const trendAllVals=[...incData,...expData].filter(v=>v>0);
     const trendMax=trendAllVals.length?Math.max(...trendAllVals):0;
-    S.charts.mainTrend=new Chart(id("chMainTrend"),{type:"line",data:{labels:ym,datasets:[{label:"Income",data:incData,borderColor:"#00916b",backgroundColor:"rgba(0,145,107,0.18)",fill:true,tension:.35},{label:"Expense",data:expData,borderColor:"#a0203a",backgroundColor:"rgba(160,32,58,0.18)",fill:true,tension:.35}]},options:{responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:0,max:trendMax>0?trendMax*1.1:1,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
+    S.charts.mainTrend=new Chart(id("chMainTrend"),{type:"line",data:{labels:ym,datasets:[{label:"Income",data:incData,borderColor:"#00916b",backgroundColor:"rgba(0,145,107,0.18)",fill:true,tension:.35},{label:"Expense",data:expData,borderColor:"#a0203a",backgroundColor:"rgba(160,32,58,0.18)",fill:true,tension:.35}]},options:{responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:0,max:niceMax(trendMax)||1,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
 
     // stacked 100% horizontal bar — matches dashboard chart-type-top
     const chTypeEl = id("chType");
@@ -310,10 +311,10 @@
     <div class="card"><div class="title">Parent Category Breakdown</div>${table(pBreak,pBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div><div class="card"><div class="title">Income Breakdown</div>${table(iBreak,iBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div>`;
     id("yearSel").onchange=e=>{S.year=e.target.value; render();};
     const cumMin=Math.min(0,...cum), cumMax=Math.max(...cum);
-    S.charts.cum=new Chart(id("chCum"),{type:"line",data:{labels:cumMths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:cumMin*1.1||0,max:cumMax>0?cumMax*1.1:0,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
+    S.charts.cum=new Chart(id("chCum"),{type:"line",data:{labels:cumMths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:cumMin<0?niceMax(cumMin):0,max:cumMax>0?niceMax(cumMax):0,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
     const yAllVals=[...yIn,...yOut].filter(v=>v>0);
-    const yMax=yAllVals.length?Math.max(...yAllVals):10;
-    S.charts.yearly=new Chart(id("chYearly"),{type:"bar",data:{labels:yrs,datasets:[{label:"Inflow",data:yIn,backgroundColor:"#00b37a"},{label:"Spending",data:yOut,backgroundColor:"#c94060"}]},options:{responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:0,max:yMax*1.1,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
+    const yMax=yAllVals.length?Math.max(...yAllVals):0;
+    S.charts.yearly=new Chart(id("chYearly"),{type:"bar",data:{labels:yrs,datasets:[{label:"Inflow",data:yIn,backgroundColor:"#00b37a"},{label:"Spending",data:yOut,backgroundColor:"#c94060"}]},options:{responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:0,max:niceMax(yMax),ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
   }
 
   function txDetail(t){
