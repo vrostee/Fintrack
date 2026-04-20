@@ -273,7 +273,7 @@
     cumMths.forEach(m=>{
       const mo=cumRows.filter(t=>t.Month===m);
       run+=sum(mo,t=>Number(t.Amount)>0&&t.Type!=="Investment (In)");
-      run-=expAbs(mo,t=>Number(t.Amount)<0&&t["Parent Category"]!=="Investment");
+      run-=expAbs(mo,t=>Number(t.Amount)<0&&t["Parent Category"]!=="Investment"&&t["Parent Category"]!=="Saving");
       cum.push(run);
     });
     const mths=months(rows);
@@ -281,7 +281,7 @@
     const heat=pcs.map(pc=>({pc,vals:recent.map(m=>expAbs(rows.filter(t=>t.Month===m),t=>t["Parent Category"]===pc))})), maxH=Math.max(1,...heat.flatMap(h=>h.vals));
     const heatFmt=(v)=>v?fmt.num(v):"—";
     const yIn=yrs.map(y=>sum(rows.filter(t=>t.Year===y),t=>Number(t.Amount)>0&&t.Type!=="Investment (In)")), yOut=yrs.map(y=>expAbs(rows.filter(t=>t.Year===y),t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)));
-    const pBreak=Object.entries(cur.filter(t=>Number(t.Amount)<0).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
+    const pBreak=Object.entrconst pBreak=Object.entries(cur.filter(t=>Number(t.Amount)<0&&t["Parent Category"]!=="Investment"&&t["Parent Category"]!=="Saving").reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
     const iBreak=Object.entries(cur.filter(t=>Number(t.Amount)>0&&t.Type!=="Investment (In)").reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
     E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Other Wallets</div><select id="yearSel" class="sel mono"><option value="__all__" ${S.year==="__all__"?"selected":""}>All years</option>${yrs.map(y=>`<option value="${y}" ${String(y)===String(S.year)?"selected":""}>${y}</option>`).join("")}</select></div>
     <div class="grid2">${kpi("income","Total Inflow",inflow,{pct:0,up:true},false)}${kpi("expense","Total Spending",spending,{pct:0,up:false},false)}</div><div class="card kpi balance"><div class="muted">Net Balance</div><div class="value mono money">${fmt.num(net)}</div></div>
