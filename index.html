@@ -108,9 +108,9 @@
   function months(rows){ return [...new Set(rows.map(t=>t.Month).filter(Boolean))].sort(); }
   function years(rows){ return [...new Set(rows.map(t=>t.Year).filter(Boolean))].sort((a,b)=>a-b); }
   function dlt(cur,prev){ if(!prev) return {pct:0,up:cur>=0}; const pct=((cur-prev)/Math.abs(prev))*100; return {pct,up:pct>=0}; }
-  function tColor(t){ return ({Needs:"#006b4a",Wants:"#7a1530",Saving:"#3d5f72",Installment:"#8a5e10","Credit Card":"#006080","Annual Expense":"#1a5a78",Income:"#006b4a",Gifts:"#5a2878",Others:"#2e3a42","Investment (In)":"#1a5a78"})[t]||"#2e3a42"; }
+  function tColor(t){ return ({Needs:"#0e7490",Wants:"#7c3aed",Saving:"#3d5f72",Installment:"#8a5e10","Credit Card":"#006080","Annual Expense":"#1a5a78",Income:"#006b4a",Gifts:"#5a2878",Others:"#2e3a42","Investment (In)":"#1a5a78"})[t]||"#2e3a42"; }
   function tPill(t){
-    const p = {Needs:["#071a14","#00e5a0"],Wants:["#1a070d","#ff4d6d"],Saving:["#0c141a","#658DA8"],Installment:["#1a1407","#ffb347"],"Credit Card":["#071420","#00d4ff"],"Annual Expense":["#071020","#38bdf8"],Income:["#07160f","#00e5a0"],Gifts:["#130720","#c084fc"],Others:["#0d1219","#4d6b85"]}[t] || ["#0d1219","#4d6b85"];
+    const p = {Needs:["#071824","#0e7490"],Wants:["#130d1f","#7c3aed"],Saving:["#0c141a","#658DA8"],Installment:["#1a1407","#ffb347"],"Credit Card":["#071420","#00d4ff"],"Annual Expense":["#071020","#38bdf8"],Income:["#07160f","#00e5a0"],Gifts:["#130720","#c084fc"],Others:["#0d1219","#4d6b85"]}[t] || ["#0d1219","#4d6b85"];
     return `background:${p[0]};color:${p[1]};border-color:${p[1]}33`;
   }
   const appleFont="-apple-system,BlinkMacSystemFont,sans-serif";
