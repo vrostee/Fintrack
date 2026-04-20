@@ -100,11 +100,9 @@
   // --- base row helpers ---
   function txBase(){ if(!S.raw) return []; return [...(S.raw.transactions||[]),...(S.raw.cc_transactions||[])].filter(t=>!t["Is Excluded"]&&!EXCL_ALL.has(t.Type)); }
   function byWallet(group){ const set=new Set(group); return txBase().filter(t=>set.has(t.Wallet)); }
-  // debit only, Saving+Investment(In) excluded — matches dashboard TX_DEBIT
-  function debitRows(monthFilter){ return txBase().filter(t=>DEBIT.includes(t.Wallet)&&!EXCL_EXP.has(t.Type)&&(!monthFilter||t.Month===monthFilter)); }
-  // saving rows separately — debit wallet, type=Saving, outflow only
-  function savingRows(monthFilter){ return txBase().filter(t=>DEBIT.includes(t.Wallet)&&t.Type==="Saving"&&Number(t.Amount)<0&&(!monthFilter||t.Month===monthFilter)); }
-
+  function debitRows(monthFilter){ const all=!monthFilter||monthFilter==="__all__"; return txBase().filter(t=>DEBIT.includes(t.Wallet)&&!EXCL_EXP.has(t.Type)&&(all||t.Month===monthFilter)); }
+  function savingRows(monthFilter){ const all=!monthFilter||monthFilter==="__all__"; return txBase().filter(t=>DEBIT.includes(t.Wallet)&&t.Type==="Saving"&&Number(t.Amount)<0&&(all||t.Month===monthFilter)); }
+  
   function sum(rows,p=()=>true){ return rows.filter(p).reduce((a,b)=>a+Number(b.Amount||0),0); }
   function expAbs(rows,p=()=>true){ return rows.filter(p).filter(t=>Number(t.Amount)<0).reduce((a,b)=>a+Math.abs(Number(b.Amount||0)),0); }
   function months(rows){ return [...new Set(rows.map(t=>t.Month).filter(Boolean))].sort(); }
@@ -141,7 +139,7 @@
     // --- match dashboard exactly: debit only, saving separate ---
     const allDebit = debitRows();
     const mths = months(allDebit);
-    if(S.month===null) S.month = mths[mths.length-1] || "";
+    if(S.month===null) S.month = mths[mths.length-1] || "__all__";
 
     const cur = debitRows(S.month);
 
@@ -210,9 +208,9 @@
       return {p,l:L,u,pct:L?(u/L)*100:0};
     });
 
-    E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Main Wallets</div><select id="monthSel" class="sel mono"><option value="" ${S.month===""?"selected":""}>All months</option>${mths.map(m=>`<option value="${m}" ${m===S.month?"selected":""}>${m}</option>`).join("")}</select></div>
+    E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Main Wallets</div><select id="monthSel" class="sel mono"><option value="__all__" ${!S.month||S.month==="__all__"?"selected":""}>All months</option>${mths.map(m=>`<option value="${m}" ${m===S.month?"selected":""}>${m}</option>`).join("")}</select></div>
     <div class="kpis">${kpi("income","Total Income",income,dlt(income,prevIncome))}${kpi("expense","Total Expenses",expense,dlt(expense,prevExpense))}${kpi("saving","Saving",saving,dlt(saving,prevSaving))}${kpi("balance","Net Balance",net,dlt(net,prevNet))}</div>
-    <div class="card"><div class="title">Budget Utilization</div>${buds.map(b=>{
+    <div class="card" ${!S.month||S.month==="__all__"?'style="display:none"':''}><div class="title">Budget Utilization</div>${buds.map(b=>{
       const cls=b.pct>=100?"bud-over":b.pct>=80?"bud-warn":"bud-ok";
       const lc=b.pct>=100?"var(--expense)":b.pct>=80?"var(--warn)":"var(--income)";
       return `<div style="margin:8px 0"><div class="row"><span style="font-size:11px">${esc(b.p)}</span><span class="mono budget-num" style="color:${lc}">${b.pct.toFixed(0)}%</span></div><div class="progress"><div class="bar ${cls}" style="width:${Math.min(100,b.pct).toFixed(1)}%"></div></div><div class="muted" style="font-size:9px;margin-top:2px">${fmt.num(b.u)} / ${fmt.num(b.l)}</div></div>`;
@@ -226,7 +224,7 @@
     }).join("")}<tr><td colspan="2" class="muted" style="font-size:9px">Total</td><td class="money">${fmt.num(parentTotal)}</td><td>100%</td></tr></tbody></table></div>
     <div class="card"><div class="title">Income Breakdown</div>${table(incBreak,totalInc,false)}</div>`;
 
-    id("monthSel").onchange=e=>{S.month=e.target.value==="__all__"?null:e.target.value; render();};
+    id("monthSel").onchange=e=>{S.month=e.target.value; render();};
 
     // monthly trend — all months if "All", else current year only
     const y=S.month?S.month.slice(0,4):null, ym=y?mths.filter(m=>m.startsWith(y)):mths;
