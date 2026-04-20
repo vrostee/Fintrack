@@ -308,10 +308,11 @@
     <div class="card"><div class="title">Yearly Inflow vs Spending</div><canvas id="chYearly"></canvas></div>
     <div class="card"><div class="title">Parent Category Breakdown</div>${table(pBreak,pBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div><div class="card"><div class="title">Income Breakdown</div>${table(iBreak,iBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div>`;
     id("yearSel").onchange=e=>{S.year=e.target.value; render();};
-    const cumMax=Math.max(0,...cum);
-    S.charts.cum=new Chart(id("chCum"),{type:"line",data:{labels:cumMths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:0,max:cumMax*1.1||10,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
-    const yMax=Math.max(0,...yIn,...yOut);
-    S.charts.yearly=new Chart(id("chYearly"),{type:"bar",data:{labels:yrs,datasets:[{label:"Inflow",data:yIn,backgroundColor:"#00b37a"},{label:"Spending",data:yOut,backgroundColor:"#c94060"}]},options:{responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:0,max:yMax*1.1||10,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
+    const cumMin=Math.min(0,...cum), cumMax=Math.max(0,...cum);
+    S.charts.cum=new Chart(id("chCum"),{type:"line",data:{labels:cumMths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:cumMin>=0?0:cumMin*1.1,max:cumMax>0?cumMax*1.1:10,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
+    const yAllVals=[...yIn,...yOut].filter(v=>v>0);
+    const yMax=yAllVals.length?Math.max(...yAllVals):10;
+    S.charts.yearly=new Chart(id("chYearly"),{type:"bar",data:{labels:yrs,datasets:[{label:"Inflow",data:yIn,backgroundColor:"#00b37a"},{label:"Spending",data:yOut,backgroundColor:"#c94060"}]},options:{responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:0,max:yMax*1.1,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
   }
 
   function txDetail(t){
