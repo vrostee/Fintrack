@@ -117,7 +117,7 @@
   function chartCfg(type,data,stack=false,h=false){
     const base = {responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}}};
     if(type==="doughnut"){
-      return {type,data,options:{...base,maintainAspectRatio:false,cutout:"72%",radius:"84%",plugins:{legend:{position:"bottom",labels:{color:"#d4e8f7",font:{size:8,family:appleFont},usePointStyle:true,padding:10}}}}};
+      return {type,data,options:{...base,cutout:"72%",radius:"84%",plugins:{legend:{position:"bottom",labels:{color:"#d4e8f7",font:{size:8,family:appleFont},usePointStyle:true,padding:10}}}}};
     }
     return {type,data,options:{...base,scales:{x:{stacked:stack,ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{stacked:stack,ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}}},indexAxis:h?"y":"x"}};
   }
@@ -213,7 +213,7 @@
     <div class="card" ${!S.month||S.month==="__all__"?'style="display:none"':''}><div class="title">Budget Utilization</div>${buds.map(b=>{
       const cls=b.pct>=100?"bud-over":b.pct>=80?"bud-warn":"bud-ok";
       const lc=b.pct>=100?"var(--expense)":b.pct>=80?"var(--warn)":"var(--income)";
-      return `<div style="margin:8px 0"><div class="row"><span style="font-size:11px">${esc(b.p)}</span><span class="mono" style="font-size:9px;color:var(--muted)">${fmt.num(b.u)} / ${fmt.num(b.l)}</span><span class="mono budget-num" style="color:${lc}">${b.pct.toFixed(0)}%</span></div><div class="progress"><div class="bar ${cls}" style="width:${Math.min(100,b.pct).toFixed(1)}%"></div></div></div>`;
+      return `<div style="margin:8px 0"><div class="row"><span style="font-size:11px">${esc(b.p)}</span><span class="mono budget-num" style="color:${lc}">${b.pct.toFixed(0)}%</span></div><div class="progress"><div class="bar ${cls}" style="width:${Math.min(100,b.pct).toFixed(1)}%"></div></div><div class="muted" style="font-size:9px;margin-top:2px">${fmt.num(b.u)} / ${fmt.num(b.l)}</div></div>`;
     }).join("")}</div>
     <div class="card"><div class="title">Monthly Trend (current year)</div><canvas id="chMainTrend"></canvas></div>
     <div class="card"><div class="title">Expense Split by Type</div><div style="position:relative;height:44px"><canvas id="chType" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas></div></div>
@@ -280,7 +280,7 @@
     <div class="card"><div class="title">Cumulative Savings (all time)</div><canvas id="chCum"></canvas></div>
     <div class="card"><div class="title">Spending Heatmap (12 months)</div><div style="overflow:auto"><table class="table mono"><thead><tr><th>Parent</th>${recent.map(m=>`<th>${m.slice(5)}</th>`).join("")}</tr></thead><tbody>${heat.map(h=>`<tr><td>${esc(h.pc)}</td>${h.vals.map(v=>`<td style="background:rgba(201,64,96,${(v/maxH*.8).toFixed(2)})"></td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
     <div class="card"><div class="title">Yearly Inflow vs Spending</div><canvas id="chYearly"></canvas></div>
-    <div class="card"><div class="title">Wallet Split</div><div style="position:relative;height:200px"><canvas id="chDonut" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas></div></div>
+    <div class="card mini"><div class="title">Wallet Split</div><canvas id="chDonut"></canvas></div>
     <div class="card"><div class="title">Parent Category Breakdown</div>${table(pBreak,pBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div><div class="card"><div class="title">Income Breakdown</div>${table(iBreak,iBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div>`;
     id("yearSel").onchange=e=>{S.year=e.target.value; render();};
     S.charts.cum = new Chart(id("chCum"), chartCfg("line",{labels:mths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3}]}));
