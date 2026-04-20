@@ -228,11 +228,10 @@
 
     // monthly trend — all months if "All", else current year only
     const y=(S.month&&S.month!=="__all__")?S.month.slice(0,4):null, ym=y?mths.filter(m=>m.startsWith(y)):mths;
-    S.charts.mainTrend = new Chart(id("chMainTrend"), chartCfg("line",{labels:ym,datasets:[
-      {label:"Income",data:ym.map(m=>sum(debitRows(m),t=>Number(t.Amount)>0)),borderColor:"#00916b",backgroundColor:"rgba(0,145,107,0.18)",fill:true,tension:.35},
-      {label:"Expense",data:ym.map(m=>expAbs(debitRows(m),t=>Number(t.Amount)<0)),borderColor:"#a0203a",backgroundColor:"rgba(160,32,58,0.18)",fill:true,tension:.35}
-    ]}));
-    S.charts.mainTrend.options.scales.y.min = 0; S.charts.mainTrend.update();
+    const incData=ym.map(m=>sum(debitRows(m),t=>Number(t.Amount)>0));
+    const expData=ym.map(m=>expAbs(debitRows(m),t=>Number(t.Amount)<0));
+    const trendMax=Math.max(0,...incData,...expData);
+    S.charts.mainTrend=new Chart(id("chMainTrend"),{type:"line",data:{labels:ym,datasets:[{label:"Income",data:incData,borderColor:"#00916b",backgroundColor:"rgba(0,145,107,0.18)",fill:true,tension:.35},{label:"Expense",data:expData,borderColor:"#a0203a",backgroundColor:"rgba(160,32,58,0.18)",fill:true,tension:.35}]},options:{responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:0,max:trendMax*1.1||10,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
 
     // stacked 100% horizontal bar — matches dashboard chart-type-top
     const chTypeEl = id("chType");
@@ -309,10 +308,10 @@
     <div class="card"><div class="title">Yearly Inflow vs Spending</div><canvas id="chYearly"></canvas></div>
     <div class="card"><div class="title">Parent Category Breakdown</div>${table(pBreak,pBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div><div class="card"><div class="title">Income Breakdown</div>${table(iBreak,iBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div>`;
     id("yearSel").onchange=e=>{S.year=e.target.value; render();};
-    S.charts.cum=new Chart(id("chCum"),chartCfg("line",{labels:cumMths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3}]}));
-    S.charts.cum.options.scales.y.min = 0; S.charts.cum.update();
-    S.charts.yearly=new Chart(id("chYearly"),chartCfg("bar",{labels:yrs,datasets:[{label:"Inflow",data:yIn,backgroundColor:"#00b37a"},{label:"Spending",data:yOut,backgroundColor:"#c94060"}]}));
-    S.charts.yearly.options.scales.y.min = 0; S.charts.yearly.update();
+    const cumMax=Math.max(0,...cum);
+    S.charts.cum=new Chart(id("chCum"),{type:"line",data:{labels:cumMths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:0,max:cumMax*1.1||10,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
+    const yMax=Math.max(0,...yIn,...yOut);
+    S.charts.yearly=new Chart(id("chYearly"),{type:"bar",data:{labels:yrs,datasets:[{label:"Inflow",data:yIn,backgroundColor:"#00b37a"},{label:"Spending",data:yOut,backgroundColor:"#c94060"}]},options:{responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:0,max:yMax*1.1||10,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
   }
 
   function txDetail(t){
