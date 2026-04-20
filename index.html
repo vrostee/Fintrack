@@ -231,7 +231,7 @@
     S.charts.mainTrend = new Chart(id("chMainTrend"), chartCfg("line",{labels:ym,datasets:[
       {label:"Income",data:ym.map(m=>sum(debitRows(m),t=>Number(t.Amount)>0)),borderColor:"#00916b",backgroundColor:"rgba(0,145,107,0.18)",fill:true,tension:.35},
       {label:"Expense",data:ym.map(m=>expAbs(debitRows(m),t=>Number(t.Amount)<0)),borderColor:"#a0203a",backgroundColor:"rgba(160,32,58,0.18)",fill:true,tension:.35}
-    ]}));
+    ],options:{scales:{y:{min:0}}}}));
 
     // stacked 100% horizontal bar — matches dashboard chart-type-top
     const chTypeEl = id("chType");
@@ -308,7 +308,7 @@
     <div class="card"><div class="title">Yearly Inflow vs Spending</div><canvas id="chYearly"></canvas></div>
     <div class="card"><div class="title">Parent Category Breakdown</div>${table(pBreak,pBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div><div class="card"><div class="title">Income Breakdown</div>${table(iBreak,iBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div>`;
     id("yearSel").onchange=e=>{S.year=e.target.value; render();};
-    S.charts.cum=new Chart(id("chCum"),chartCfg("line",{labels:cumMths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3}]}));
+    S.charts.cum=new Chart(id("chCum"),chartCfg("line",{labels:cumMths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3}],options:{scales:{y:{min:0}}}}));
     S.charts.yearly=new Chart(id("chYearly"),chartCfg("bar",{labels:yrs,datasets:[{label:"Inflow",data:yIn,backgroundColor:"#00b37a"},{label:"Spending",data:yOut,backgroundColor:"#c94060"}]}));
   }
 
