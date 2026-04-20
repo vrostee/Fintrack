@@ -261,8 +261,8 @@
     });
 
     // needs / wants charts — horizontal bar, by parent category
-    S.charts.needs = new Chart(id("chNeeds"),{type:"bar",data:{labels:needs.map(x=>x[0]),datasets:[{data:needs.map(x=>x[1]),backgroundColor:"rgba(0,120,80,0.35)",borderColor:"#007a50",borderWidth:1,borderRadius:3}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{display:false}}}}});
-    S.charts.wants = new Chart(id("chWants"),{type:"bar",data:{labels:wants.map(x=>x[0]),datasets:[{data:wants.map(x=>x[1]),backgroundColor:"rgba(160,30,55,0.4)",borderColor:"#a01e37",borderWidth:1,borderRadius:3}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{display:false}}}}});
+    S.charts.needs = new Chart(id("chNeeds"),{type:"bar",data:{labels:needs.map(x=>x[0]),datasets:[{data:needs.map(x=>x[1]),backgroundColor:"rgba(14,116,144,0.35)",borderColor:"#0e7490",borderWidth:1,borderRadius:3}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{display:false}}}}});
+    S.charts.wants = new Chart(id("chWants"),{type:"bar",data:{labels:wants.map(x=>x[0]),datasets:[{data:wants.map(x=>x[1]),backgroundColor:"rgba(124,58,237,0.4)",borderColor:"#7c3aed",borderWidth:1,borderRadius:3}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{display:false}}}}});
   }
 
   function renderOverviewOther(){
