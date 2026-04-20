@@ -273,20 +273,17 @@
     const heat=pcs.map(pc=>({pc,vals:recent.map(m=>expAbs(rows.filter(t=>t.Month===m),t=>t["Parent Category"]===pc))})), maxH=Math.max(1,...heat.flatMap(h=>h.vals));
     const heatFmt=(v)=>v?fmt.num(v):"—";
     const yIn=yrs.map(y=>sum(rows.filter(t=>t.Year===y),t=>Number(t.Amount)>0&&t.Type!=="Investment (In)")), yOut=yrs.map(y=>expAbs(rows.filter(t=>t.Year===y),t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)));
-    const wallets=OTHER.map(w=>({w,v:expAbs(cur.filter(t=>t.Wallet===w))+sum(cur.filter(t=>t.Wallet===w),t=>Number(t.Amount)>0)}));
     const pBreak=Object.entries(cur.filter(t=>Number(t.Amount)<0).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
     const iBreak=Object.entries(cur.filter(t=>Number(t.Amount)>0&&t.Type!=="Investment (In)").reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
     E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Other Wallets</div><select id="yearSel" class="sel mono"><option value="__all__" ${S.year==="__all__"?"selected":""}>All years</option>${yrs.map(y=>`<option value="${y}" ${String(y)===String(S.year)?"selected":""}>${y}</option>`).join("")}</select></div>
     <div class="grid2">${kpi("income","Total Inflow",inflow,{pct:0,up:true},false)}${kpi("expense","Total Spending",spending,{pct:0,up:false},false)}</div><div class="card kpi balance"><div class="muted">Net Balance</div><div class="value mono money">${fmt.num(net)}</div></div>
     <div class="card"><div class="title">Cumulative Savings (all time)</div><canvas id="chCum"></canvas></div>
     <div class="card"><div class="title">Spending Heatmap (12 months)</div><div style="overflow:auto"><table class="table mono"><thead><tr><th>Parent</th>${recent.map(m=>`<th>${m.slice(5)}</th>`).join("")}</tr></thead><tbody>${heat.map(h=>`<tr><td>${esc(h.pc)}</td>${h.vals.map((v,i)=>`<td title="${esc(h.pc)} · ${recent[i]}: ${heatFmt(v)}" style="cursor:default;padding:4px 3px;border-radius:3px;background:rgba(201,64,96,${v?(v/maxH*.8).toFixed(2):'0'})">${v?'':'&nbsp;'}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
-    <div class="card"><div class="title">Yearly Inflow vs Spending</div><div style="position:relative;height:180px"><canvas id="chYearly" style="position:absolute;inset:0"></canvas></div></div>
-    <div class="card mini"><div class="title">Wallet Split</div><div style="position:relative;height:200px"><canvas id="chDonut" style="position:absolute;inset:0"></canvas></div></div>
+    <div class="card"><div class="title">Yearly Inflow vs Spending</div><canvas id="chYearly"></canvas></div>
     <div class="card"><div class="title">Parent Category Breakdown</div>${table(pBreak,pBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div><div class="card"><div class="title">Income Breakdown</div>${table(iBreak,iBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div>`;
     id("yearSel").onchange=e=>{S.year=e.target.value; render();};
     S.charts.cum = new Chart(id("chCum"), chartCfg("line",{labels:mths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3}]}));
-    S.charts.yearly = new Chart(id("chYearly"),{...chartCfg("bar",{labels:yrs,datasets:[{label:"Inflow",data:yIn,backgroundColor:"#00b37a"},{label:"Spending",data:yOut,backgroundColor:"#c94060"}]}),options:{...chartCfg("bar",{}).options,maintainAspectRatio:false,responsive:true}});
-    S.charts.donut = new Chart(id("chDonut"),{...chartCfg("doughnut",{labels:wallets.map(x=>x.w),datasets:[{data:wallets.map(x=>x.v),backgroundColor:["#00e5a0","#00d4ff","#a78bfa"]}]}),options:{...chartCfg("doughnut",{}).options,maintainAspectRatio:false,responsive:true}});
+    S.charts.yearly = new Chart(id("chYearly"), chartCfg("bar",{labels:yrs,datasets:[{label:"Inflow",data:yIn,backgroundColor:"#00b37a"},{label:"Spending",data:yOut,backgroundColor:"#c94060"}]}));
   }
 
   function txDetail(t){
