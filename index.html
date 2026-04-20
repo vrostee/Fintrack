@@ -86,7 +86,7 @@
   const EXCL_ALL = new Set(["Not Included","Budgeting","Other User"]);
   const EXCL_EXP = new Set(["Saving","Investment (In)"]);
 
-  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",month:"",year:"",charts:{} };
+  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",month:null,year:null,charts:{} };
   const E = { app:id("app"),loading:id("loading"),updated:id("updated"),cacheNotice:id("cacheNotice"),overview:id("overview"),tx:id("transactions"),inv:id("investments"),pull:id("pull"),ov:id("ov"),panel:id("panel") };
 
   function id(x){return document.getElementById(x)}
@@ -141,7 +141,7 @@
     // --- match dashboard exactly: debit only, saving separate ---
     const allDebit = debitRows();
     const mths = months(allDebit);
-    if(S.month==="") S.month = mths[mths.length-1] || "";
+    if(S.month===null) S.month = mths[mths.length-1] || "";
 
     const cur = debitRows(S.month);
 
@@ -226,10 +226,10 @@
     }).join("")}<tr><td colspan="2" class="muted" style="font-size:9px">Total</td><td class="money">${fmt.num(parentTotal)}</td><td>100%</td></tr></tbody></table></div>
     <div class="card"><div class="title">Income Breakdown</div>${table(incBreak,totalInc,false)}</div>`;
 
-    id("monthSel").onchange=e=>{S.month=e.target.value; render(); id("monthSel").value=S.month;};
+    id("monthSel").onchange=e=>{S.month=e.target.value==="__all__"?null:e.target.value; render();};
 
-    // monthly trend — debit rows for the current year
-    const y=S.month.slice(0,4), ym=mths.filter(m=>m.startsWith(y));
+    // monthly trend — all months if "All", else current year only
+    const y=S.month?S.month.slice(0,4):null, ym=y?mths.filter(m=>m.startsWith(y)):mths;
     S.charts.mainTrend = new Chart(id("chMainTrend"), chartCfg("line",{labels:ym,datasets:[
       {label:"Income",data:ym.map(m=>sum(debitRows(m),t=>Number(t.Amount)>0)),borderColor:"#00916b",backgroundColor:"rgba(0,145,107,0.18)",fill:true,tension:.35},
       {label:"Expense",data:ym.map(m=>expAbs(debitRows(m),t=>Number(t.Amount)<0)),borderColor:"#a0203a",backgroundColor:"rgba(160,32,58,0.18)",fill:true,tension:.35}
@@ -268,7 +268,7 @@
   }
 
   function renderOverviewOther(){
-    const rows=byWallet(OTHER), yrs=years(rows); if(S.year==="") S.year=String(yrs[yrs.length-1]||""); const cur=S.year===""?rows:rows.filter(t=>t.Year==S.year);
+    const rows=byWallet(OTHER), yrs=years(rows); if(S.year===null) S.year=String(yrs[yrs.length-1]||""); const cur=S.year==="__all__"?rows:rows.filter(t=>String(t.Year)===String(S.year));
     const inflow=sum(cur,t=>Number(t.Amount)>0&&t.Type!=="Investment (In)"), spending=expAbs(cur,t=>Number(t.Amount)<0&&!EXCL_EXP.has(t.Type)), net=inflow-spending;
     const mths=months(rows), cum=[]; let run=0; mths.forEach(m=>{run+=sum(rows.filter(t=>t.Month===m)); cum.push(run);});
     const recent=mths.slice(-12), pcs=[...new Set(cur.filter(t=>Number(t.Amount)<0&&t["Parent Category"]!=="Investment").map(t=>t["Parent Category"]))].slice(0,8);
@@ -277,14 +277,14 @@
     const wallets=OTHER.map(w=>({w,v:expAbs(cur.filter(t=>t.Wallet===w))+sum(cur.filter(t=>t.Wallet===w),t=>Number(t.Amount)>0)}));
     const pBreak=Object.entries(cur.filter(t=>Number(t.Amount)<0).reduce((m,t)=>((m[t["Parent Category"]]=(m[t["Parent Category"]]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
     const iBreak=Object.entries(cur.filter(t=>Number(t.Amount)>0&&t.Type!=="Investment (In)").reduce((m,t)=>((m[t.Category]=(m[t.Category]||0)+Math.abs(Number(t.Amount))),m),{})).sort((a,b)=>b[1]-a[1]);
-    E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Other Wallets</div><select id="yearSel" class="sel mono"><option value="" ${S.year===""?"selected":""}>All years</option>${yrs.map(y=>`<option value="${y}" ${String(y)===String(S.year)?"selected":""}>${y}</option>`).join("")}</select></div>
+    E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Other Wallets</div><select id="yearSel" class="sel mono"><option value="__all__" ${S.year==="__all__"?"selected":""}>All years</option>${yrs.map(y=>`<option value="${y}" ${String(y)===String(S.year)?"selected":""}>${y}</option>`).join("")}</select></div>
     <div class="grid2">${kpi("income","Total Inflow",inflow,{pct:0,up:true},false)}${kpi("expense","Total Spending",spending,{pct:0,up:false},false)}</div><div class="card kpi balance"><div class="muted">Net Balance</div><div class="value mono money">${fmt.num(net)}</div></div>
     <div class="card"><div class="title">Cumulative Savings (all time)</div><canvas id="chCum"></canvas></div>
     <div class="card"><div class="title">Spending Heatmap (12 months)</div><div style="overflow:auto"><table class="table mono"><thead><tr><th>Parent</th>${recent.map(m=>`<th>${m.slice(5)}</th>`).join("")}</tr></thead><tbody>${heat.map(h=>`<tr><td>${esc(h.pc)}</td>${h.vals.map(v=>`<td style="background:rgba(201,64,96,${(v/maxH*.8).toFixed(2)})"></td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
     <div class="card"><div class="title">Yearly Inflow vs Spending</div><canvas id="chYearly"></canvas></div>
     <div class="card mini"><div class="title">Wallet Split</div><canvas id="chDonut"></canvas></div>
     <div class="card"><div class="title">Parent Category Breakdown</div>${table(pBreak,pBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div><div class="card"><div class="title">Income Breakdown</div>${table(iBreak,iBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div>`;
-    id("yearSel").onchange=e=>{S.year=e.target.value; render(); id("yearSel").value=S.year;};
+    id("yearSel").onchange=e=>{S.year=e.target.value; render();};
     S.charts.cum = new Chart(id("chCum"), chartCfg("line",{labels:mths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3}]}));
     S.charts.yearly = new Chart(id("chYearly"), chartCfg("bar",{labels:yrs,datasets:[{label:"Inflow",data:yIn,backgroundColor:"#00b37a"},{label:"Spending",data:yOut,backgroundColor:"#c94060"}]}));
     S.charts.donut = new Chart(id("chDonut"), chartCfg("doughnut",{labels:wallets.map(x=>x.w),datasets:[{data:wallets.map(x=>x.v),backgroundColor:["#00e5a0","#00d4ff","#a78bfa"]}]}));
@@ -334,7 +334,7 @@
   function loadCache(){ try{ const v=localStorage.getItem(KEY); if(!v) return false; S.raw=JSON.parse(v); return true; }catch{return false;} }
 
   function bindUI(){
-    document.querySelectorAll("[data-wallet]").forEach(b=>b.onclick=()=>{S.wallet=b.dataset.wallet; render(); setScreens();});
+    document.querySelectorAll("[data-wallet]").forEach(b=>b.onclick=()=>{S.wallet=b.dataset.wallet; S.month=null; S.year=null; render(); setScreens();});
     document.querySelectorAll("[data-screen]").forEach(b=>b.onclick=()=>{S.screen=b.dataset.screen; setScreens();});
     id("privacyBtn").onclick=()=>{S.privacy=!S.privacy; applyPrivacy();}; E.ov.onclick=closePanel;
     let sy=0,p=false; window.addEventListener("touchstart",e=>{ if(window.scrollY===0){ sy=e.touches[0].clientY; p=true; } },{passive:true});
