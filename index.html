@@ -27,12 +27,13 @@
     canvas{width:100%!important;height:205px!important}.mini canvas{height:175px!important}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stack{display:grid;grid-template-columns:1fr;gap:8px}.table{width:100%;border-collapse:collapse;font-size:10px}.table th,.table td{text-align:left;padding:6px 4px;border-bottom:1px solid rgba(30,45,61,.5)}
     #chType{height:44px!important;min-height:unset!important;max-height:unset!important}
+    #chWalletNet{height:160px!important;min-height:unset!important;max-height:unset!important}
     #chDonut{height:150px!important;max-width:220px!important;margin:0 auto}
     .badge{border-radius:999px;padding:2px 7px;font-size:8px;border:1px solid var(--border);background:#0b1118}.money.blur{filter:blur(8px)}
     .progress{height:7px;background:#0b1118;border:1px solid var(--border);border-radius:999px;overflow:hidden}.bar{height:100%}
     .bud-ok{background:linear-gradient(90deg,rgba(0,229,160,0.25),#00b37a)}.bud-warn{background:linear-gradient(90deg,rgba(255,179,71,0.25),#ffb347)}.bud-over{background:linear-gradient(90deg,rgba(255,77,109,0.15),#c94060)}
     .notice{background:rgba(255,191,0,.08);border:1px solid rgba(255,191,0,.3);color:#ffd37a;padding:7px 10px;border-radius:10px;font-size:12px}
-    .search{display:grid;grid-template-columns:1fr auto auto;gap:6px}.input,.sel{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;color:var(--text)}
+    .search{display:grid;grid-template-columns:1fr auto auto;gap:6px}.input,.sel{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;color:var(--text);font-size:16px}
     .scroller{scrollbar-width:thin;scrollbar-color:#2a3f55 #0d1219}
     .scroller::-webkit-scrollbar{width:6px;height:6px}
     .scroller::-webkit-scrollbar-track{background:#0d1219;border-radius:999px}
@@ -376,8 +377,9 @@
       const q=S.txSearch.toLowerCase();
       rows=rows.filter(t=>{
         const fields = S.txField==="All"
-          ? [t.Category, t["Parent Category"], t.Type, t.Wallet, t.Note]
-          : [t[S.txField==="Category"?"Category":S.txField==="Parent Category"?"Parent Category":S.txField==="Type"?"Type":S.txField==="Wallet"?"Wallet":"Note"]||""];
+          ? [t.Category,t["Parent Category"],t.Type,t.Wallet,t.Note]
+          : S.txField==="Parent Category" ? [t["Parent Category"]||""]
+          : [t[S.txField]||""];
         return fields.some(v=>String(v||"").toLowerCase().includes(q));
       });
     }
@@ -431,11 +433,11 @@
     let rows = S.txMonth==="__all__" ? [...baseAll] : baseAll.filter(t=>t.Month===S.txMonth);
     if(S.txSearch.trim()){
       const q=S.txSearch.toLowerCase();
-      const fieldKey = {Category:"Category","Parent Category":"Parent Category",Type:"Type",Wallet:"Wallet",Note:"Note"};
       rows=rows.filter(t=>{
         const fields = S.txField==="All"
           ? [t.Category,t["Parent Category"],t.Type,t.Wallet,t.Note]
-          : [t[fieldKey[S.txField]]||""];
+          : S.txField==="Parent Category" ? [t["Parent Category"]||""]
+          : [t[S.txField]||""];
         return fields.some(v=>String(v||"").toLowerCase().includes(q));
       });
     }
