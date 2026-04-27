@@ -225,7 +225,7 @@
       return `<tr><td>${esc(k)}</td><td><span class="badge" style="${tPill(v.type)}">${esc(v.type)}</span></td><td class="money">${fmt.num(v.total)}</td><td>${pct}%</td></tr>`;
     }).join("")}<tr><td colspan="2" class="muted" style="font-size:9px">Total</td><td class="money">${fmt.num(parentTotal)}</td><td>100%</td></tr></tbody></table></div>
     <div class="card"><div class="title">Income Breakdown</div>${table(incBreak,totalInc,false)}</div>
-    <div class="card"><div class="title">Net Balance by Wallet <span class="muted" style="font-weight:400;font-size:9px">${S.month==="__all__"?"all months":S.month}</span></div><div style="position:relative;height:160px"><canvas id="chWalletNet" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas></div></div>`;
+    <div class="card"><div class="title">Income vs Expense by Wallet <span class="muted" style="font-weight:400;font-size:9px">${S.month==="__all__"?"all months":S.month}</span></div><canvas id="chWalletNet"></canvas></div>`;
 
     id("monthSel").onchange=e=>{S.month=e.target.value; render();};
 
@@ -268,35 +268,40 @@
     S.charts.needs = new Chart(id("chNeeds"),{type:"bar",data:{labels:needs.map(x=>x[0]),datasets:[{data:needs.map(x=>x[1]),backgroundColor:"rgba(14,116,144,0.35)",borderColor:"#0e7490",borderWidth:1,borderRadius:3}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{display:false}}}}});
     S.charts.wants = new Chart(id("chWants"),{type:"bar",data:{labels:wants.map(x=>x[0]),datasets:[{data:wants.map(x=>x[1]),backgroundColor:"rgba(124,58,237,0.4)",borderColor:"#7c3aed",borderWidth:1,borderRadius:3}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{display:false}}}}});
 
-    // wallet net donut — inflow minus outflow per wallet for selected month
+    // wallet net donut — debit only, all rows unfiltered, income vs expense per wallet
     (()=>{
-      const walletList = ["BCA","Jago","Blu","Credit BCA","Credit BRI"];
-      const walletColors = {"BCA":"#00b37a","Jago":"#38bdf8","Blu":"#658DA8","Credit BCA":"#ffb347","Credit BRI":"#c084fc"};
-      const allMain = txBase().filter(t=>walletList.includes(t.Wallet)&&(S.month==="__all__"||t.Month===S.month));
-      const nets = walletList.map(w=>{
-        const wtx = allMain.filter(t=>t.Wallet===w);
-        return sum(wtx); // net = inflow + outflow (outflow is negative)
+      const walletList = ["BCA","Jago","Blu"];
+      const walletColors = {"BCA":"#00b37a","Jago":"#38bdf8","Blu":"#658DA8"};
+      const allTx = (S.raw.transactions||[]);
+      const monthOk = t => S.month==="__all__" || t.Month===S.month;
+      const walletIncome={}, walletExpense={};
+      walletList.forEach(w=>{ walletIncome[w]=0; walletExpense[w]=0; });
+      allTx.forEach(t=>{
+        if(!walletList.includes(t.Wallet)||!monthOk(t)) return;
+        const a=Number(t.Amount||0);
+        if(a>0) walletIncome[t.Wallet]+=a;
+        else walletExpense[t.Wallet]+=Math.abs(a);
       });
-      const labels=[], data=[], colors=[];
-      walletList.forEach((w,i)=>{ if(nets[i]!==0){ labels.push(w); data.push(nets[i]); colors.push(walletColors[w]||"#4d6b85"); }});
+      const labels=[], incData=[], expData=[], colors=[];
+      walletList.forEach(w=>{
+        if(walletIncome[w]||walletExpense[w]){
+          labels.push(w); incData.push(walletIncome[w]); expData.push(walletExpense[w]); colors.push(walletColors[w]);
+        }
+      });
       const el=id("chWalletNet"); if(!el) return;
       S.charts.walletNet = new Chart(el,{
-        type:"doughnut",
-        data:{labels,datasets:[{data:data.map(Math.abs),backgroundColor:colors,borderWidth:0,hoverOffset:4}]},
+        type:"bar",
+        data:{labels,datasets:[
+          {label:"Income",data:incData,backgroundColor:"rgba(0,179,122,0.5)",borderColor:"#00b37a",borderWidth:1,borderRadius:4},
+          {label:"Expense",data:expData,backgroundColor:"rgba(201,64,96,0.45)",borderColor:"#c94060",borderWidth:1,borderRadius:4}
+        ]},
         options:{
-          cutout:"68%",
-          responsive:true,
-          maintainAspectRatio:false,
-          plugins:{
-            legend:{position:"right",labels:{color:"#d4e8f7",font:{size:9,family:appleFont},usePointStyle:true,padding:8,generateLabels:(chart)=>{
-              return chart.data.labels.map((l,i)=>({
-                text:`${l}  ${nets[walletList.indexOf(l)]>=0?"":"−"}${fmt.num(Math.abs(nets[walletList.indexOf(l)]))}`,
-                fillStyle:colors[i],
-                strokeStyle:"transparent",
-                index:i
-              }));
-            }}},
-            tooltip:{callbacks:{label:c=>`${c.label}: ${nets[c.dataIndex]>=0?"+":"−"}${fmt.num(Math.abs(nets[c.dataIndex]))}`}}
+          responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:"#d4e8f7",font:{size:9,family:appleFont},usePointStyle:true,padding:8}},
+            tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt.num(c.raw)}`}}},
+          scales:{
+            x:{ticks:{color:"#4d6b85",font:{size:9,family:appleFont}},grid:{color:"#1e2d3d"}},
+            y:{ticks:{color:"#4d6b85",font:{size:8,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}
           }
         }
       });
@@ -377,8 +382,9 @@
       const q=S.txSearch.toLowerCase();
       rows=rows.filter(t=>{
         const fields = S.txField==="All"
-          ? [t.Category,t["Parent Category"],t.Type,t.Wallet,t.Note]
+          ? [t.Category,t["Parent Category"],t.Type,t.Wallet,t.Note,t.Flow]
           : S.txField==="Parent Category" ? [t["Parent Category"]||""]
+          : S.txField==="Flow" ? [t.Flow||""]
           : [t[S.txField]||""];
         return fields.some(v=>String(v||"").toLowerCase().includes(q));
       });
@@ -402,7 +408,7 @@
       ${S.wallet==="main"?`<div class="toggle" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><button class="btn ${S.txMode==="debit"?"active":""}" id="modeDebit">Debit</button><button class="btn ${S.txMode==="cc"?"active":""}" id="modeCc">CC</button></div>`:""}
       <select id="txMonth" class="sel" style="width:100%;margin-bottom:6px">${mthOpts}</select>
       <div style="display:grid;grid-template-columns:80px 1fr 90px;gap:6px;margin-bottom:4px">
-        <select id="txField" class="sel"><option value="All">All</option><option value="Category">Category</option><option value="Parent Category">Parent</option><option value="Type">Type</option><option value="Wallet">Wallet</option><option value="Note">Note</option></select>
+        <select id="txField" class="sel"><option value="All">All</option><option value="Flow">Flow</option><option value="Category">Category</option><option value="Parent Category">Parent</option><option value="Type">Type</option><option value="Wallet">Wallet</option><option value="Note">Note</option></select>
         <input id="txSearch" class="input" placeholder="Search..." value="${esc(S.txSearch)}" autocomplete="off" autocorrect="off" spellcheck="false">
         <select id="txSort" class="sel"><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="amount_desc">Amt ↓</option><option value="amount_asc">Amt ↑</option></select>
       </div>
@@ -435,8 +441,9 @@
       const q=S.txSearch.toLowerCase();
       rows=rows.filter(t=>{
         const fields = S.txField==="All"
-          ? [t.Category,t["Parent Category"],t.Type,t.Wallet,t.Note]
+          ? [t.Category,t["Parent Category"],t.Type,t.Wallet,t.Note,t.Flow]
           : S.txField==="Parent Category" ? [t["Parent Category"]||""]
+          : S.txField==="Flow" ? [t.Flow||""]
           : [t[S.txField]||""];
         return fields.some(v=>String(v||"").toLowerCase().includes(q));
       });
