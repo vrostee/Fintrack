@@ -86,7 +86,7 @@
   const EXCL_ALL = new Set(["Not Included","Budgeting","Other User"]);
   const EXCL_EXP = new Set(["Saving","Investment (In)"]);
 
-  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",month:null,year:null,charts:{} };
+  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",txMonth:"__all__",month:null,year:null,charts:{} };
   const E = { app:id("app"),loading:id("loading"),updated:id("updated"),cacheNotice:id("cacheNotice"),overview:id("overview"),tx:id("transactions"),inv:id("investments"),pull:id("pull"),ov:id("ov"),panel:id("panel") };
 
   function id(x){return document.getElementById(x)}
@@ -223,7 +223,8 @@
       const pct=((v.total/parentTotal)*100).toFixed(1);
       return `<tr><td>${esc(k)}</td><td><span class="badge" style="${tPill(v.type)}">${esc(v.type)}</span></td><td class="money">${fmt.num(v.total)}</td><td>${pct}%</td></tr>`;
     }).join("")}<tr><td colspan="2" class="muted" style="font-size:9px">Total</td><td class="money">${fmt.num(parentTotal)}</td><td>100%</td></tr></tbody></table></div>
-    <div class="card"><div class="title">Income Breakdown</div>${table(incBreak,totalInc,false)}</div>`;
+    <div class="card"><div class="title">Income Breakdown</div>${table(incBreak,totalInc,false)}</div>
+    <div class="card"><div class="title">Net Balance by Wallet <span class="muted" style="font-weight:400;font-size:9px">${S.month==="__all__"?"all months":S.month}</span></div><div style="position:relative;height:160px"><canvas id="chWalletNet" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas></div></div>`;
 
     id("monthSel").onchange=e=>{S.month=e.target.value; render();};
 
@@ -265,6 +266,40 @@
     // needs / wants charts — horizontal bar, by parent category
     S.charts.needs = new Chart(id("chNeeds"),{type:"bar",data:{labels:needs.map(x=>x[0]),datasets:[{data:needs.map(x=>x[1]),backgroundColor:"rgba(14,116,144,0.35)",borderColor:"#0e7490",borderWidth:1,borderRadius:3}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{display:false}}}}});
     S.charts.wants = new Chart(id("chWants"),{type:"bar",data:{labels:wants.map(x=>x[0]),datasets:[{data:wants.map(x=>x[1]),backgroundColor:"rgba(124,58,237,0.4)",borderColor:"#7c3aed",borderWidth:1,borderRadius:3}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{display:false}}}}});
+
+    // wallet net donut — inflow minus outflow per wallet for selected month
+    (()=>{
+      const walletList = ["BCA","Jago","Blu","Credit BCA","Credit BRI"];
+      const walletColors = {"BCA":"#00b37a","Jago":"#38bdf8","Blu":"#658DA8","Credit BCA":"#ffb347","Credit BRI":"#c084fc"};
+      const allMain = txBase().filter(t=>walletList.includes(t.Wallet)&&(S.month==="__all__"||t.Month===S.month));
+      const nets = walletList.map(w=>{
+        const wtx = allMain.filter(t=>t.Wallet===w);
+        return sum(wtx); // net = inflow + outflow (outflow is negative)
+      });
+      const labels=[], data=[], colors=[];
+      walletList.forEach((w,i)=>{ if(nets[i]!==0){ labels.push(w); data.push(nets[i]); colors.push(walletColors[w]||"#4d6b85"); }});
+      const el=id("chWalletNet"); if(!el) return;
+      S.charts.walletNet = new Chart(el,{
+        type:"doughnut",
+        data:{labels,datasets:[{data:data.map(Math.abs),backgroundColor:colors,borderWidth:0,hoverOffset:4}]},
+        options:{
+          cutout:"68%",
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            legend:{position:"right",labels:{color:"#d4e8f7",font:{size:9,family:appleFont},usePointStyle:true,padding:8,generateLabels:(chart)=>{
+              return chart.data.labels.map((l,i)=>({
+                text:`${l}  ${nets[walletList.indexOf(l)]>=0?"":"−"}${fmt.num(Math.abs(nets[walletList.indexOf(l)]))}`,
+                fillStyle:colors[i],
+                strokeStyle:"transparent",
+                index:i
+              }));
+            }}},
+            tooltip:{callbacks:{label:c=>`${c.label}: ${nets[c.dataIndex]>=0?"+":"−"}${fmt.num(Math.abs(nets[c.dataIndex]))}`}}
+          }
+        }
+      });
+    })();
   }
 
   function renderOverviewOther(){
@@ -325,19 +360,110 @@
   function closePanel(){ E.ov.classList.remove("show"); E.panel.classList.remove("show"); }
 
   function renderTransactions(){
-    const base = S.wallet==="main" ? byWallet(S.txMode==="debit"?DEBIT:CREDIT) : byWallet(OTHER);
-    let rows=[...base];
-    if(S.txSearch.trim()){ const q=S.txSearch.toLowerCase(); rows=rows.filter(t=>{ const f=S.txField==="All"?[t.Category,t["Parent Category"],t.Type,t.Wallet,t.Note]:[t[S.txField]||""]; return f.some(v=>String(v||"").toLowerCase().includes(q));});}
-    rows.sort((a,b)=> S.txSort==="date_desc"?fmt.parseDate(b.Date)-fmt.parseDate(a.Date):S.txSort==="date_asc"?fmt.parseDate(a.Date)-fmt.parseDate(b.Date):S.txSort==="amount_desc"?Number(b.Amount)-Number(a.Amount):Number(a.Amount)-Number(b.Amount));
-    E.tx.innerHTML = `<div class="card"><div class="title">Transactions</div>${S.wallet==="main"?`<div class="toggle" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><button class="btn ${S.txMode==="debit"?"active":""}" data-mode="debit">Debit</button><button class="btn ${S.txMode==="cc"?"active":""}" data-mode="cc">CC</button></div>`:""}
-    <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:6px;margin-bottom:4px"><select id="txField" class="sel"><option>All</option><option>Category</option><option>Parent Category</option><option>Type</option><option>Wallet</option><option>Note</option></select><input id="txSearch" class="input" placeholder="Search..." value="${esc(S.txSearch)}"><select id="txSort" class="sel"><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="amount_desc">Amount ↓</option><option value="amount_asc">Amount ↑</option></select></div>
-    <div class="scroller" style="margin-top:8px;max-height:58dvh;overflow:auto">${rows.map((t,i)=>`<button class="tx" data-i="${i}" style="width:100%;background:transparent;border:0;color:inherit;text-align:left"><span class="dot ${t.Flow==="Income"?"inc":"exp"}"></span><span><div>${esc(t.Category)} ${t.Note?`<span class="muted">- ${esc(t.Note)}</span>`:""}</div><div class="small">${esc(t.Wallet)} - ${esc(t.Date)} - <span class="badge" style="${tPill(t.Type)}">${esc(t.Type)}</span></div></span><span class="amount mono money" style="color:${t.Flow==="Income"?"var(--income)":"var(--expense)"}">${fmt.num(Number(t.Amount))}</span></button>`).join("")}</div></div>`;
-    if(S.wallet==="main") document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{S.txMode=b.dataset.mode; renderTransactions(); applyPrivacy();});
-    id("txField").value=S.txField; id("txSort").value=S.txSort;
-    id("txField").onchange=e=>{S.txField=e.target.value; renderTransactions(); applyPrivacy();};
-    id("txSort").onchange=e=>{S.txSort=e.target.value; renderTransactions(); applyPrivacy();};
-    id("txSearch").oninput=e=>{S.txSearch=e.target.value; renderTransactions(); applyPrivacy();};
-    document.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>txDetail(rows[Number(b.dataset.i)]));
+    // build base rows for this tab (all months available for month filter)
+    const baseAll = S.wallet==="main" ? byWallet(S.txMode==="debit"?DEBIT:CREDIT) : byWallet(OTHER);
+    const txMths = months(baseAll);
+    // default txMonth to current overview month for main/debit, else latest
+    if(S.txMonth==="__all__"||!txMths.includes(S.txMonth)){
+      // keep __all__ as-is, it's a valid choice
+    }
+
+    // apply month filter first
+    let rows = S.txMonth==="__all__" ? [...baseAll] : baseAll.filter(t=>t.Month===S.txMonth);
+
+    // apply search
+    if(S.txSearch.trim()){
+      const q=S.txSearch.toLowerCase();
+      rows=rows.filter(t=>{
+        const fields = S.txField==="All"
+          ? [t.Category, t["Parent Category"], t.Type, t.Wallet, t.Note]
+          : [t[S.txField==="Category"?"Category":S.txField==="Parent Category"?"Parent Category":S.txField==="Type"?"Type":S.txField==="Wallet"?"Wallet":"Note"]||""];
+        return fields.some(v=>String(v||"").toLowerCase().includes(q));
+      });
+    }
+
+    // sort — always re-sort from current state
+    const sorted = [...rows].sort((a,b)=>{
+      if(S.txSort==="date_desc") return fmt.parseDate(b.Date)-fmt.parseDate(a.Date);
+      if(S.txSort==="date_asc")  return fmt.parseDate(a.Date)-fmt.parseDate(b.Date);
+      if(S.txSort==="amount_desc") return Math.abs(Number(b.Amount))-Math.abs(Number(a.Amount));
+      if(S.txSort==="amount_asc")  return Math.abs(Number(a.Amount))-Math.abs(Number(b.Amount));
+      return 0;
+    });
+
+    // build month options
+    const mthOpts = `<option value="__all__" ${S.txMonth==="__all__"?"selected":""}>All months</option>`
+      + txMths.map(m=>`<option value="${m}" ${m===S.txMonth?"selected":""}>${m}</option>`).join("");
+
+    E.tx.innerHTML = `<div class="card">
+      <div class="title">Transactions <span class="muted" style="font-weight:400;font-size:10px">${sorted.length} entries</span></div>
+      ${S.wallet==="main"?`<div class="toggle" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><button class="btn ${S.txMode==="debit"?"active":""}" id="modeDebit">Debit</button><button class="btn ${S.txMode==="cc"?"active":""}" id="modeCc">CC</button></div>`:""}
+      <select id="txMonth" class="sel" style="width:100%;margin-bottom:6px">${mthOpts}</select>
+      <div style="display:grid;grid-template-columns:80px 1fr 90px;gap:6px;margin-bottom:4px">
+        <select id="txField" class="sel"><option value="All">All</option><option value="Category">Category</option><option value="Parent Category">Parent</option><option value="Type">Type</option><option value="Wallet">Wallet</option><option value="Note">Note</option></select>
+        <input id="txSearch" class="input" placeholder="Search..." value="${esc(S.txSearch)}" autocomplete="off" autocorrect="off" spellcheck="false">
+        <select id="txSort" class="sel"><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="amount_desc">Amt ↓</option><option value="amount_asc">Amt ↑</option></select>
+      </div>
+      <div class="scroller" style="margin-top:8px;max-height:55dvh;overflow:auto" id="txListWrap">
+        ${sorted.map((t,i)=>`<button class="tx" data-i="${i}" style="width:100%;background:transparent;border:0;color:inherit;text-align:left">
+          <span class="dot ${t.Flow==="Income"?"inc":"exp"}"></span>
+          <span><div>${esc(t.Category)}${t.Note?` <span class="muted">· ${esc(t.Note)}</span>`:""}</div><div class="small">${esc(t.Wallet)} · ${esc(t.Date)} · <span class="badge" style="${tPill(t.Type)}">${esc(t.Type)}</span></div></span>
+          <span class="amount mono money" style="color:${t.Flow==="Income"?"var(--income)":"var(--expense)"}">${fmt.num(Number(t.Amount))}</span>
+        </button>`).join("")}
+      </div>
+    </div>`;
+
+    // bind controls — only touch controls, NOT re-render innerHTML
+    if(S.wallet==="main"){
+      id("modeDebit").onclick=()=>{S.txMode="debit"; S.txMonth="__all__"; renderTransactions(); applyPrivacy();};
+      id("modeCc").onclick=()=>{S.txMode="cc"; S.txMonth="__all__"; renderTransactions(); applyPrivacy();};
+    }
+    id("txMonth").onchange=e=>{S.txMonth=e.target.value; renderTxList(sorted,baseAll,txMths);};
+    id("txField").onchange=e=>{S.txField=e.target.value; renderTxList(sorted,baseAll,txMths);};
+    id("txSort").onchange=e=>{S.txSort=e.target.value; renderTxList(sorted,baseAll,txMths);};
+    // Use input event but update S and re-render only the list, NOT the whole card (fixes keyboard dismiss)
+    id("txSearch").addEventListener("input",e=>{S.txSearch=e.target.value; renderTxList(sorted,baseAll,txMths);});
+    id("txListWrap").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>txDetail(sorted[Number(b.dataset.i)]));
+  }
+
+  function renderTxList(prevSorted, baseAll, txMths){
+    // re-filter & re-sort without touching the outer card HTML (preserves input focus)
+    let rows = S.txMonth==="__all__" ? [...baseAll] : baseAll.filter(t=>t.Month===S.txMonth);
+    if(S.txSearch.trim()){
+      const q=S.txSearch.toLowerCase();
+      const fieldKey = {Category:"Category","Parent Category":"Parent Category",Type:"Type",Wallet:"Wallet",Note:"Note"};
+      rows=rows.filter(t=>{
+        const fields = S.txField==="All"
+          ? [t.Category,t["Parent Category"],t.Type,t.Wallet,t.Note]
+          : [t[fieldKey[S.txField]]||""];
+        return fields.some(v=>String(v||"").toLowerCase().includes(q));
+      });
+    }
+    const sorted=[...rows].sort((a,b)=>{
+      if(S.txSort==="date_desc") return fmt.parseDate(b.Date)-fmt.parseDate(a.Date);
+      if(S.txSort==="date_asc")  return fmt.parseDate(a.Date)-fmt.parseDate(b.Date);
+      if(S.txSort==="amount_desc") return Math.abs(Number(b.Amount))-Math.abs(Number(a.Amount));
+      if(S.txSort==="amount_asc")  return Math.abs(Number(a.Amount))-Math.abs(Number(b.Amount));
+      return 0;
+    });
+    const wrap = id("txListWrap");
+    if(!wrap) return;
+    wrap.innerHTML = sorted.map((t,i)=>`<button class="tx" data-i="${i}" style="width:100%;background:transparent;border:0;color:inherit;text-align:left">
+      <span class="dot ${t.Flow==="Income"?"inc":"exp"}"></span>
+      <span><div>${esc(t.Category)}${t.Note?` <span class="muted">· ${esc(t.Note)}</span>`:""}</div><div class="small">${esc(t.Wallet)} · ${esc(t.Date)} · <span class="badge" style="${tPill(t.Type)}">${esc(t.Type)}</span></div></span>
+      <span class="amount mono money" style="color:${t.Flow==="Income"?"var(--income)":"var(--expense)"}">${fmt.num(Number(t.Amount))}</span>
+    </button>`).join("");
+    // update count in title
+    const titleEl = document.querySelector("#transactions .title");
+    if(titleEl) titleEl.innerHTML = `Transactions <span class="muted" style="font-weight:400;font-size:10px">${sorted.length} entries</span>`;
+    // re-bind row clicks
+    wrap.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>txDetail(sorted[Number(b.dataset.i)]));
+    // re-bind month/field/sort selects to new sorted list
+    const mf=id("txMonth"), ff=id("txField"), sf=id("txSort");
+    if(mf) mf.onchange=e=>{S.txMonth=e.target.value; renderTxList(sorted,baseAll,txMths);};
+    if(ff) ff.onchange=e=>{S.txField=e.target.value; renderTxList(sorted,baseAll,txMths);};
+    if(sf) sf.onchange=e=>{S.txSort=e.target.value; renderTxList(sorted,baseAll,txMths);};
+    applyPrivacy();
   }
 
   function renderInvestments(){
