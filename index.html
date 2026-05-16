@@ -10,7 +10,7 @@
   <style>
     :root{--bg:#080c12;--card:#0d1219;--surface:#131b24;--hover:#1a2332;--border:#1e2d3d;--border-active:#2a3f55;--text:#d4e8f7;--muted:#4d6b85;--accent:#E8E0E3;--accent-2:#C4B8BC;--income:#00b37a;--expense:#c94060;--saving:#658DA8;--warn:#ffb347;--inv:#38bdf8;--safe-bottom:env(safe-area-inset-bottom,0px);--safe-top:env(safe-area-inset-top,0px)}
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,sans-serif;font-size:13px;max-width:390px;margin-inline:auto;min-height:100dvh;padding-top:var(--safe-top);overflow-x:hidden;-webkit-font-smoothing:antialiased}
-    .mono{font-family:"SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.hidden{display:none!important}
+    .mono{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,sans-serif}.hidden{display:none!important}
     .top{position:sticky;top:0;z-index:30;background:rgba(8,12,18,.88);backdrop-filter:blur(12px);border-bottom:1px solid rgba(30,45,61,.4);padding:12px 14px}
     .row{display:flex;align-items:center;justify-content:space-between;gap:8px}.small{font-size:10px;color:var(--muted)}
     .seg,.tabs,.toggle{display:grid;gap:6px;background:#0b1118;border:1px solid var(--border);border-radius:999px;padding:4px}
@@ -114,7 +114,7 @@
     const p = {Needs:["#071824","#0e7490"],Wants:["#130d1f","#7c3aed"],Saving:["#0c141a","#658DA8"],Installment:["#1a1407","#ffb347"],"Credit Card":["#071420","#00d4ff"],"Annual Expense":["#071020","#38bdf8"],Income:["#07160f","#00e5a0"],Gifts:["#130720","#c084fc"],Others:["#0d1219","#4d6b85"]}[t] || ["#0d1219","#4d6b85"];
     return `background:${p[0]};color:${p[1]};border-color:${p[1]}33`;
   }
-  const appleFont="-apple-system,BlinkMacSystemFont,sans-serif";
+  const appleFont="-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display',system-ui,sans-serif";
   const niceMax=(v)=>{ if(!v) return 0; const neg=v<0; const abs=Math.abs(v); const mag=Math.pow(10,Math.floor(Math.log10(abs))); const step=mag*(abs/mag<=2?0.5:abs/mag<=5?1:2); const r=Math.ceil(abs/step)*step; return neg?-r:r; };
   function chartCfg(type,data,stack=false,h=false){
     const base = {responsive:true,plugins:{legend:{labels:{color:"#d4e8f7",font:{size:7,family:appleFont}}}}};
