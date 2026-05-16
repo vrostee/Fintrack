@@ -87,7 +87,7 @@
   const EXCL_ALL = new Set(["Not Included","Budgeting","Other User"]);
   const EXCL_EXP = new Set(["Saving","Investment (In)"]);
 
-  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",txMonth:"__all__",month:null,year:null,charts:{} };
+  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",txMonth:null,month:null,year:null,charts:{} };
   const E = { app:id("app"),loading:id("loading"),updated:id("updated"),cacheNotice:id("cacheNotice"),overview:id("overview"),tx:id("transactions"),inv:id("investments"),pull:id("pull"),ov:id("ov"),panel:id("panel") };
 
   function id(x){return document.getElementById(x)}
@@ -370,7 +370,7 @@
     const baseAll = S.wallet==="main" ? byWallet(S.txMode==="debit"?DEBIT:CREDIT) : byWallet(OTHER);
     const txMths = months(baseAll);
     // default txMonth to current overview month for main/debit, else latest
-    if(S.txMonth==="__all__"||!txMths.includes(S.txMonth)){
+    if(S.txMonth===null||!txMths.includes(S.txMonth)){
       S.txMonth = txMths[txMths.length-1] || "__all__";
     }
 
@@ -496,7 +496,7 @@
   function loadCache(){ try{ const v=localStorage.getItem(KEY); if(!v) return false; S.raw=JSON.parse(v); return true; }catch{return false;} }
 
   function bindUI(){
-    document.querySelectorAll("[data-wallet]").forEach(b=>b.onclick=()=>{S.wallet=b.dataset.wallet; S.month=null; S.year=null; render(); setScreens();});
+    document.querySelectorAll("[data-wallet]").forEach(b=>b.onclick=()=>{S.wallet=b.dataset.wallet; S.month=null; S.year=null; S.txMonth=null; render(); setScreens();});
     document.querySelectorAll("[data-screen]").forEach(b=>b.onclick=()=>{S.screen=b.dataset.screen; setScreens();});
     id("privacyBtn").onclick=()=>{S.privacy=!S.privacy; applyPrivacy();}; E.ov.onclick=closePanel;
     let sy=0,p=false; window.addEventListener("touchstart",e=>{ if(window.scrollY===0){ sy=e.touches[0].clientY; p=true; } },{passive:true});
