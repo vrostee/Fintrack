@@ -371,7 +371,7 @@
     const txMths = months(baseAll);
     // default txMonth to current overview month for main/debit, else latest
     if(S.txMonth==="__all__"||!txMths.includes(S.txMonth)){
-      // keep __all__ as-is, it's a valid choice
+      S.txMonth = txMths[txMths.length-1] || "__all__";
     }
 
     // apply month filter first
