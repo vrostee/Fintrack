@@ -87,7 +87,7 @@
   const EXCL_ALL = new Set(["Not Included","Budgeting","Other User"]);
   const EXCL_EXP = new Set(["Saving","Investment (In)"]);
 
-  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",txMonth:null,month:null,year:null,charts:{} };
+  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txWallet:"main",txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",txMonth:null,month:null,year:null,charts:{} };
   const E = { app:id("app"),loading:id("loading"),updated:id("updated"),cacheNotice:id("cacheNotice"),overview:id("overview"),tx:id("transactions"),inv:id("investments"),pull:id("pull"),ov:id("ov"),panel:id("panel") };
 
   function id(x){return document.getElementById(x)}
@@ -367,7 +367,7 @@
 
   function renderTransactions(){
     // build base rows for this tab (all months available for month filter)
-    const baseAll = S.wallet==="main" ? byWallet(S.txMode==="debit"?DEBIT:CREDIT) : byWallet(OTHER);
+    const baseAll = S.txWallet==="all" ? byWallet([...MAIN,...OTHER]) : S.txWallet==="main" ? byWallet(S.txMode==="debit"?DEBIT:CREDIT) : byWallet(OTHER);
     const txMths = months(baseAll);
     // default txMonth to current overview month for main/debit, else latest
     if(S.txMonth===null||!txMths.includes(S.txMonth)){
@@ -405,7 +405,12 @@
 
     E.tx.innerHTML = `<div class="card">
       <div class="title">Transactions <span class="muted" style="font-weight:400;font-size:10px">${sorted.length} entries</span></div>
-      ${S.wallet==="main"?`<div class="toggle" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><button class="btn ${S.txMode==="debit"?"active":""}" id="modeDebit">Debit</button><button class="btn ${S.txMode==="cc"?"active":""}" id="modeCc">CC</button></div>`:""}
+      <div class="toggle" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:8px">
+        <button class="btn ${S.txWallet==="main"?"active":""}" id="txWalletMain">Main</button>
+        <button class="btn ${S.txWallet==="other"?"active":""}" id="txWalletOther">Other</button>
+        <button class="btn ${S.txWallet==="all"?"active":""}" id="txWalletAll">All</button>
+      </div>
+      ${S.txWallet==="main"?`<div class="toggle" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><button class="btn ${S.txMode==="debit"?"active":""}" id="modeDebit">Debit</button><button class="btn ${S.txMode==="cc"?"active":""}" id="modeCc">CC</button></div>`:""}
       <select id="txMonth" class="sel" style="width:100%;margin-bottom:6px">${mthOpts}</select>
       <div style="display:grid;grid-template-columns:80px 1fr 90px;gap:6px;margin-bottom:4px">
         <select id="txField" class="sel"><option value="All">All</option><option value="Flow">Flow</option><option value="Category">Category</option><option value="Parent Category">Parent</option><option value="Type">Type</option><option value="Wallet">Wallet</option><option value="Note">Note</option></select>
@@ -422,7 +427,10 @@
     </div>`;
 
     // bind controls — only touch controls, NOT re-render innerHTML
-    if(S.wallet==="main"){
+    id("txWalletMain").onclick=()=>{S.txWallet="main"; S.txMonth="__all__"; renderTransactions(); applyPrivacy();};
+    id("txWalletOther").onclick=()=>{S.txWallet="other"; S.txMonth="__all__"; renderTransactions(); applyPrivacy();};
+    id("txWalletAll").onclick=()=>{S.txWallet="all"; S.txMonth="__all__"; renderTransactions(); applyPrivacy();};
+    if(S.txWallet==="main"){
       id("modeDebit").onclick=()=>{S.txMode="debit"; S.txMonth="__all__"; renderTransactions(); applyPrivacy();};
       id("modeCc").onclick=()=>{S.txMode="cc"; S.txMonth="__all__"; renderTransactions(); applyPrivacy();};
     }
