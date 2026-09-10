@@ -410,11 +410,6 @@
         <button class="btn ${S.txWallet==="other"?"active":""}" id="txWalletOther">Other</button>
         <button class="btn ${S.txWallet==="all"?"active":""}" id="txWalletAll">All</button>
       </div>
-      <div class="toggle" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:8px">
-        <button class="btn ${S.txWallet==="main"?"active":""}" id="txWalletMain">Main</button>
-        <button class="btn ${S.txWallet==="other"?"active":""}" id="txWalletOther">Other</button>
-        <button class="btn ${S.txWallet==="all"?"active":""}" id="txWalletAll">All</button>
-      </div>
       ${S.txWallet==="main"?`<div class="toggle" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><button class="btn ${S.txMode==="debit"?"active":""}" id="modeDebit">Debit</button><button class="btn ${S.txMode==="cc"?"active":""}" id="modeCc">CC</button></div>`:""}
       <select id="txMonth" class="sel" style="width:100%;margin-bottom:6px">${mthOpts}</select>
       <div style="display:grid;grid-template-columns:80px 1fr 90px;gap:6px;margin-bottom:4px">
