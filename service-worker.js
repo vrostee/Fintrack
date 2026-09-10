@@ -1,7 +1,7 @@
 const CACHE_VERSION = "fintrack-v1";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
-const DATA_URL_PREFIX = "https://script.googleusercontent.com/macros/echo";
+const DATA_URL_PREFIX = "https://script.google.com/macros/s/";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
