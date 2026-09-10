@@ -417,6 +417,7 @@
         <input id="txSearch" class="input" placeholder="Search..." value="${esc(S.txSearch)}" autocomplete="off" autocorrect="off" spellcheck="false">
         <select id="txSort" class="sel"><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="amount_desc">Amt ↓</option><option value="amount_asc">Amt ↑</option></select>
       </div>
+      <div class="row" style="padding:2px 2px 6px"><span class="muted" style="font-size:10px">Sum of shown</span><span id="txSum" class="mono money" style="font-size:12px;font-weight:700;color:${sorted.reduce((a,t)=>a+Number(t.Amount||0),0)>=0?"var(--income)":"var(--expense)"}">${fmt.num(sorted.reduce((a,t)=>a+Number(t.Amount||0),0))}</span></div>
       <div class="scroller" style="margin-top:8px;max-height:55dvh;overflow:auto" id="txListWrap">
         ${sorted.map((t,i)=>`<button class="tx" data-i="${i}" style="width:100%;background:transparent;border:0;color:inherit;text-align:left">
           <span class="dot ${t.Flow==="Income"?"inc":"exp"}"></span>
@@ -473,6 +474,9 @@
     // update count in title
     const titleEl = document.querySelector("#transactions .title");
     if(titleEl) titleEl.innerHTML = `Transactions <span class="muted" style="font-weight:400;font-size:10px">${sorted.length} entries</span>`;
+    // update sum of shown
+    const sumEl = id("txSum");
+    if(sumEl){ const s=sorted.reduce((a,t)=>a+Number(t.Amount||0),0); sumEl.textContent=fmt.num(s); sumEl.style.color = s>=0 ? "var(--income)" : "var(--expense)"; }
     // re-bind row clicks
     wrap.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>txDetail(sorted[Number(b.dataset.i)]));
     // re-bind month/field/sort selects to new sorted list
