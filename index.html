@@ -58,7 +58,7 @@
     <div id="updated" class="small mono">Last updated: -</div>
     <div id="cacheNotice" class="notice hidden" style="margin-top:8px">Showing cached data</div>
   </header>
-  <div class="seg">
+  <div class="seg" id="walletSeg">
     <button class="btn active" data-wallet="main">Main Wallets</button>
     <button class="btn" data-wallet="other">Other Wallets</button>
   </div>
@@ -410,6 +410,11 @@
         <button class="btn ${S.txWallet==="other"?"active":""}" id="txWalletOther">Other</button>
         <button class="btn ${S.txWallet==="all"?"active":""}" id="txWalletAll">All</button>
       </div>
+      <div class="toggle" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:8px">
+        <button class="btn ${S.txWallet==="main"?"active":""}" id="txWalletMain">Main</button>
+        <button class="btn ${S.txWallet==="other"?"active":""}" id="txWalletOther">Other</button>
+        <button class="btn ${S.txWallet==="all"?"active":""}" id="txWalletAll">All</button>
+      </div>
       ${S.txWallet==="main"?`<div class="toggle" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><button class="btn ${S.txMode==="debit"?"active":""}" id="modeDebit">Debit</button><button class="btn ${S.txMode==="cc"?"active":""}" id="modeCc">CC</button></div>`:""}
       <select id="txMonth" class="sel" style="width:100%;margin-bottom:6px">${mthOpts}</select>
       <div style="display:grid;grid-template-columns:80px 1fr 90px;gap:6px;margin-bottom:4px">
@@ -497,6 +502,7 @@
     const showInv=S.wallet==="other"; document.querySelector("[data-screen='investments']").classList.toggle("hidden",!showInv); if(!showInv && S.screen==="investments"){ S.screen="overview"; setScreens(); }
     id("bottomTabs").style.gridTemplateColumns = showInv ? "repeat(3,1fr)" : "repeat(2,1fr)";
     document.querySelectorAll("[data-wallet]").forEach(b=>b.classList.toggle("active",b.dataset.wallet===S.wallet));
+    id("walletSeg").classList.toggle("hidden",S.screen==="transactions");
   }
   function render(){ if(!S.raw) return; clearCharts(); if(S.wallet==="main") renderOverviewMain(); else renderOverviewOther(); renderTransactions(); renderInvestments(); setScreens(); applyPrivacy(); }
 
@@ -504,7 +510,7 @@
   function loadCache(){ try{ const v=localStorage.getItem(KEY); if(!v) return false; S.raw=JSON.parse(v); return true; }catch{return false;} }
 
   function bindUI(){
-    document.querySelectorAll("[data-wallet]").forEach(b=>b.onclick=()=>{S.wallet=b.dataset.wallet; S.month=null; S.year=null; S.txMonth=null; render(); setScreens();});
+    document.querySelectorAll("[data-wallet]").forEach(b=>b.onclick=()=>{S.wallet=b.dataset.wallet; S.txWallet=b.dataset.wallet; S.month=null; S.year=null; S.txMonth=null; render(); setScreens();});
     document.querySelectorAll("[data-screen]").forEach(b=>b.onclick=()=>{S.screen=b.dataset.screen; setScreens();});
     id("privacyBtn").onclick=()=>{S.privacy=!S.privacy; applyPrivacy();}; E.ov.onclick=closePanel;
     let sy=0,p=false; window.addEventListener("touchstart",e=>{ if(window.scrollY===0){ sy=e.touches[0].clientY; p=true; } },{passive:true});
