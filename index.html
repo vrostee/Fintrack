@@ -367,7 +367,7 @@
 
   function renderTransactions(){
     // build base rows for this tab (all months available for month filter)
-    const baseAll = S.txWallet==="all" ? byWallet([...MAIN,...OTHER]) : S.txWallet==="main" ? byWallet(S.txMode==="debit"?DEBIT:CREDIT) : byWallet(OTHER);
+    const baseAll = S.txWallet==="all" ? byWallet([...DEBIT,...OTHER]) : S.txWallet==="main" ? byWallet(S.txMode==="debit"?DEBIT:CREDIT) : byWallet(OTHER);
     const txMths = months(baseAll);
     // default txMonth to current overview month for main/debit, else latest
     if(S.txMonth===null||!txMths.includes(S.txMonth)){
