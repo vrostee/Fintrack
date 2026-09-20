@@ -370,7 +370,7 @@
     const baseAll = S.txWallet==="all" ? byWallet([...DEBIT,...OTHER]) : S.txWallet==="main" ? byWallet(S.txMode==="debit"?DEBIT:CREDIT) : byWallet(OTHER);
     const txMths = months(baseAll);
     // default txMonth to current overview month for main/debit, else latest
-    if(S.txMonth===null||!txMths.includes(S.txMonth)){
+    if(S.txMonth===null||(S.txMonth!=="__all__"&&!txMths.includes(S.txMonth))){
       S.txMonth = txMths[txMths.length-1] || "__all__";
     }
 
