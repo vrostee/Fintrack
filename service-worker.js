@@ -6,6 +6,7 @@ const STATIC_ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./2.jpeg",
   "https://cdn.jsdelivr.net/npm/chart.js"
 ];
 
