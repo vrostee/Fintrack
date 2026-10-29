@@ -50,7 +50,8 @@
     @keyframes drop{0%{opacity:0;transform:translateY(-20px)}25%{opacity:1}65%{transform:translateY(0)}100%{opacity:1;transform:translateY(0)}}
   /* ===== GLASS THEME ===== */
 html{background:#080c12}
-body::before{content:"";position:fixed;inset:0;z-index:-1;
+body{background:transparent}
+body::before{content:"";position:fixed;top:0;bottom:0;left:50%;width:100%;max-width:390px;transform:translateX(-50%);z-index:-1;
   background:linear-gradient(rgba(8,12,18,.55),rgba(8,12,18,.80)),url("2.jpeg") center/cover no-repeat}
 
 /* light glass: all cards, no blur (keeps scrolling smooth) */
