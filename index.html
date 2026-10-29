@@ -67,6 +67,20 @@ body::before{content:"";position:fixed;top:0;bottom:0;left:50%;width:100%;max-wi
 .kpi{background:rgba(255,255,255,.06)}
 .input,.sel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}
 .btn.active{background:rgba(255,255,255,.10)}
+
+/* ===== ANIMATIONS ===== */
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.bar{transform-origin:left center}
+body.anim #overview>*{animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+body.anim #overview>:nth-child(2){animation-delay:.07s}
+body.anim #overview>:nth-child(3){animation-delay:.14s}
+body.anim #overview>:nth-child(4){animation-delay:.21s}
+body.anim #overview>:nth-child(5){animation-delay:.28s}
+body.anim #overview>:nth-child(6){animation-delay:.35s}
+body.anim #overview>:nth-child(7){animation-delay:.42s}
+body.anim #overview>:nth-child(n+8){animation-delay:.5s}
+body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
 </style>
 </head>
 <body>
@@ -109,6 +123,27 @@ body::before{content:"";position:fixed;top:0;bottom:0;left:50%;width:100%;max-wi
   const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txWallet:"main",txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",txMonth:null,month:null,year:null,charts:{} };
   const E = { app:id("app"),loading:id("loading"),updated:id("updated"),cacheNotice:id("cacheNotice"),overview:id("overview"),tx:id("transactions"),inv:id("investments"),pull:id("pull"),ov:id("ov"),panel:id("panel") };
 
+  let PLAY=false;
+  const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // line charts: reveal left to right with a clip
+  Chart.register({id:"reveal",
+    beforeUpdate(c){ if(PLAY&&c.config.type==="line") c.options.animation=false; },
+    afterInit(c){
+      if(!PLAY||c.config.type!=="line") return;
+      c.$rv=0; const t0=performance.now();
+      const step=n=>{ if(!c.ctx) return; const t=Math.min(1,(n-t0)/1100); c.$rv=1-Math.pow(1-t,3); c.draw(); if(t<1) requestAnimationFrame(step); else c.$rv=null; };
+      requestAnimationFrame(step);
+    },
+    beforeDatasetsDraw(c){ if(c.$rv==null) return; const a=c.chartArea; c.ctx.save(); c.ctx.beginPath(); c.ctx.rect(a.left-6,a.top-6,(a.right-a.left+12)*c.$rv,a.bottom-a.top+12); c.ctx.clip(); },
+    afterDatasetsDraw(c){ if(c.$rv!=null) c.ctx.restore(); }
+  });
+  function countUp(){
+    document.querySelectorAll(".value[data-v]").forEach(el=>{
+      const v=Number(el.dataset.v), t0=performance.now();
+      const step=n=>{ const t=Math.min(1,(n-t0)/900); el.textContent=fmt.num(v*(1-Math.pow(1-t,3))); if(t<1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    });
+  }
   function id(x){return document.getElementById(x)}
   function esc(s){return String(s??"").replace(/[&<>'"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[m]))}
   const fmt = {
@@ -153,7 +188,7 @@ body::before{content:"";position:fixed;top:0;bottom:0;left:50%;width:100%;max-wi
     btn.title = S.privacy ? "Show amounts" : "Hide amounts";
   }
 
-  function kpi(kind,name,val,dd,delta=true){ return `<div class="card kpi ${kind}"><div class="muted">${name}</div><div class="value mono money">${fmt.num(val)}</div>${delta?`<div class="delta ${dd.up?"up":"down"}">${dd.up?"▲":"▼"} ${Math.abs(dd.pct).toFixed(1)}% vs prev month</div>`:""}</div>`; }
+  function kpi(kind,name,val,dd,delta=true){ return `<div class="card kpi ${kind}"><div class="muted">${name}</div><div class="value mono money" data-v="${val}">${fmt.num(val)}</div>${delta?`<div class="delta ${dd.up?"up":"down"}">${dd.up?"▲":"▼"} ${Math.abs(dd.pct).toFixed(1)}% vs prev month</div>`:""}</div>`; }
   function table(rows,total,withType){ const tot=Math.abs(total)||1; return `<table class="table mono"><thead><tr><th>${withType?"Parent Category":"Category"}</th>${withType?"<th>Type</th>":""}<th>Amount</th><th>%</th></tr></thead><tbody>${rows.map(([k,v])=>`<tr><td>${esc(k)}</td>${withType?`<td><span class="badge" style="${tPill('Others')}">Type</span></td>`:""}<td class="money">${fmt.num(Math.abs(v))}</td><td>${((Math.abs(v)/tot)*100).toFixed(1)}%</td></tr>`).join("")}</tbody></table>`; }
 
   function renderOverviewMain(){
@@ -522,7 +557,7 @@ body::before{content:"";position:fixed;top:0;bottom:0;left:50%;width:100%;max-wi
     document.querySelectorAll("[data-wallet]").forEach(b=>b.classList.toggle("active",b.dataset.wallet===S.wallet));
     id("walletSeg").classList.toggle("hidden",S.screen==="transactions");
   }
-  function render(){ if(!S.raw) return; clearCharts(); if(S.wallet==="main") renderOverviewMain(); else renderOverviewOther(); renderTransactions(); renderInvestments(); setScreens(); applyPrivacy(); }
+  function render(play){ if(!S.raw) return; PLAY=!!play&&!RM; Chart.defaults.animation=PLAY?{duration:1000,easing:"easeOutQuart",delay:c=>c.type==="data"&&c.mode==="default"?c.dataIndex*60+c.datasetIndex*50:0}:false; document.body.classList.toggle("anim",PLAY); clearCharts(); if(S.wallet==="main") renderOverviewMain(); else renderOverviewOther(); renderTransactions(); renderInvestments(); setScreens(); applyPrivacy(); if(PLAY){ countUp(); clearTimeout(window._at); window._at=setTimeout(()=>document.body.classList.remove("anim"),2200); } }
 
   async function fetchData(showFailNotice=true){ try{ const r=await fetch(URL,{cache:"no-store"}); if(!r.ok) throw 0; const d=await r.json(); S.raw=d; localStorage.setItem(KEY,JSON.stringify(d)); E.cacheNotice.classList.add("hidden"); render(); return true; }catch{ if(showFailNotice&&S.raw) E.cacheNotice.classList.remove("hidden"); return false; } }
   function loadCache(){ try{ const v=localStorage.getItem(KEY); if(!v) return false; S.raw=JSON.parse(v); return true; }catch{return false;} }
