@@ -399,7 +399,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
 
     const yearLabel=S.year==="__all__"?"All years":S.year;
     E.overview.innerHTML = `<div class="card row"><div class="title">Overview - Other Wallets</div><select id="yearSel" class="sel mono"><option value="__all__" ${S.year==="__all__"?"selected":""}>All years</option>${yrs.map(y=>`<option value="${y}" ${String(y)===String(S.year)?"selected":""}>${y}</option>`).join("")}</select></div>
-    <div class="grid2">${kpi("income","Total Inflow",inflow,{pct:0,up:true},false)}${kpi("expense","Total Spending",spending,{pct:0,up:false},false)}</div><div class="card kpi balance"><div class="muted">Net Balance</div><div class="value mono money">${fmt.num(net)}</div></div>
+    <div class="grid2">${kpi("income","Total Inflow",inflow,{pct:0,up:true},false)}${kpi("expense","Total Spending",spending,{pct:0,up:false},false)}</div><div class="card kpi balance"><div class="muted">Net Balance</div><div class="value mono money" data-v="${net}">${fmt.num(net)}</div></div>
     <div class="card"><div class="title">Cumulative Savings <span class="muted" style="font-size:9px;font-weight:400">${yearLabel}</span></div><canvas id="chCum"></canvas></div>
     <div class="card"><div class="title">Spending Heatmap (12 months)</div><div style="overflow:auto"><table class="table mono"><thead><tr><th>Parent</th>${recent.map(m=>`<th>${m.slice(5)}</th>`).join("")}</tr></thead><tbody>${heat.map(h=>`<tr><td>${esc(h.pc)}</td>${h.vals.map((v,i)=>`<td title="${esc(h.pc)} · ${recent[i]}: ${heatFmt(v)}" style="cursor:default;padding:4px 3px;border-radius:3px;background:rgba(201,64,96,${v?(v/maxH*.8).toFixed(2):'0'})">${v?'':'&nbsp;'}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
     <div class="card"><div class="title">Yearly Inflow vs Spending</div><canvas id="chYearly"></canvas></div>
@@ -557,9 +557,9 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
     document.querySelectorAll("[data-wallet]").forEach(b=>b.classList.toggle("active",b.dataset.wallet===S.wallet));
     id("walletSeg").classList.toggle("hidden",S.screen==="transactions");
   }
-  function render(play){ if(!S.raw) return; PLAY=!!play&&!RM; Chart.defaults.animation=PLAY?{duration:1000,easing:"easeOutQuart",delay:c=>c.type==="data"&&c.mode==="default"?c.dataIndex*60+c.datasetIndex*50:0}:false; document.body.classList.toggle("anim",PLAY); clearCharts(); if(S.wallet==="main") renderOverviewMain(); else renderOverviewOther(); renderTransactions(); renderInvestments(); setScreens(); applyPrivacy(); if(PLAY){ countUp(); clearTimeout(window._at); window._at=setTimeout(()=>document.body.classList.remove("anim"),2200); } }
+  function render(play=true){ if(!S.raw) return; PLAY=!!play&&!RM; Chart.defaults.animation=PLAY?{duration:1000,easing:"easeOutQuart",delay:c=>c.type==="data"&&c.mode==="default"?c.dataIndex*60+c.datasetIndex*50:0}:false; document.body.classList.toggle("anim",PLAY); clearCharts(); if(S.wallet==="main") renderOverviewMain(); else renderOverviewOther(); renderTransactions(); renderInvestments(); setScreens(); applyPrivacy(); if(PLAY){ countUp(); clearTimeout(window._at); window._at=setTimeout(()=>document.body.classList.remove("anim"),2200); } }
 
-  async function fetchData(showFailNotice=true){ try{ const r=await fetch(URL,{cache:"no-store"}); if(!r.ok) throw 0; const d=await r.json(); S.raw=d; localStorage.setItem(KEY,JSON.stringify(d)); E.cacheNotice.classList.add("hidden"); render(); return true; }catch{ if(showFailNotice&&S.raw) E.cacheNotice.classList.remove("hidden"); return false; } }
+async function fetchData(showFailNotice=true,silent=false){ try{ const r=await fetch(URL,{cache:"no-store"}); if(!r.ok) throw 0; const txt=await r.text(); const changed=txt!==localStorage.getItem(KEY); S.raw=JSON.parse(txt); localStorage.setItem(KEY,txt); E.cacheNotice.classList.add("hidden"); if(changed||!silent) render(!silent); return true; }catch{ if(showFailNotice&&S.raw) E.cacheNotice.classList.remove("hidden"); return false; } }
   function loadCache(){ try{ const v=localStorage.getItem(KEY); if(!v) return false; S.raw=JSON.parse(v); return true; }catch{return false;} }
 
   function bindUI(){
@@ -574,7 +574,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
   async function start(){
     bindUI();
     const cached=loadCache();
-    if(cached){ render(); E.app.style.visibility="visible"; E.loading.classList.add("hidden"); await fetchData(true); }
+    if(cached){ render(); E.app.style.visibility="visible"; E.loading.classList.add("hidden"); await fetchData(true,true); }
     else { const ok=await fetchData(false); if(!ok){ E.loading.innerHTML="<div class='card'>Unable to load data</div>"; return; } E.app.style.visibility="visible"; E.loading.classList.add("hidden"); }
     E.updated.textContent = `Last updated: ${fmt.dt(S.raw.generated_at || new Date().toISOString())}`;
     if("serviceWorker" in navigator){ try{ await navigator.serviceWorker.register("./service-worker.js"); }catch{} }
