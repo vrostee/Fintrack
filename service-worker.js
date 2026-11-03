@@ -1,4 +1,4 @@
-const CACHE_VERSION = "fintrack-v4";
+const CACHE_VERSION = "fintrack-v5";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 const DATA_URL_PREFIX = "https://script.google.com/macros/s/";
@@ -31,6 +31,7 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
   const req = event.request;
   const url = req.url;
   if (url.startsWith(DATA_URL_PREFIX)) {
