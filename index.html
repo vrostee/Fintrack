@@ -81,6 +81,20 @@ body.anim #overview>:nth-child(6){animation-delay:.35s}
 body.anim #overview>:nth-child(7){animation-delay:.42s}
 body.anim #overview>:nth-child(n+8){animation-delay:.5s}
 body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
+.lg{width:300px;display:grid;gap:14px;padding:26px 22px;text-align:center}
+.lg-ico{width:52px;height:52px;margin:0 auto;border-radius:16px;display:grid;place-items:center;background:rgba(232,224,227,.08);border:1px solid rgba(255,255,255,.12);color:var(--accent)}
+.lg-ico .icon{width:24px;height:24px}
+.lg h1{margin:0;font-size:18px;font-weight:700;letter-spacing:-.3px}
+.lg p{margin:3px 0 0;font-size:12px;color:var(--muted)}
+.lg .input{text-align:center}
+.lg-btn{border:0;border-radius:12px;padding:12px;font-weight:700;font-size:14px;background:var(--accent);color:#080c12;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s,transform .1s}
+.lg-btn:active{transform:scale(.98)}
+.lg-btn:disabled{opacity:.6}
+.lg-spin{width:14px;height:14px;border:2px solid rgba(8,12,18,.25);border-top-color:#080c12;border-radius:50%;animation:lgs .7s linear infinite}
+@keyframes lgs{to{transform:rotate(360deg)}}
+.lg-err{min-height:14px;font-size:11px;color:var(--expense)}
+.lg-shake{animation:shk .35s}
+@keyframes shk{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 </style>
 </head>
 <body>
@@ -571,20 +585,31 @@ async function fetchData(showFailNotice=true,silent=false){ try{ const r=await f
 function showLogin(msg=""){
   E.app.style.visibility="hidden";
   E.loading.classList.remove("hidden");
-  E.loading.innerHTML=`<div class="card" style="width:280px;display:grid;gap:10px">
-    <strong>Fintrack</strong>
-    <input id="pw" type="password" class="input" placeholder="Password" autocomplete="current-password">
-    <button id="pwGo" class="btn active">Unlock</button>
-    <div id="pwMsg" class="small" style="color:var(--expense)">${msg}</div></div>`;
-  id("pwGo").onclick=async()=>{
-    id("pwMsg").textContent="...";
+  E.loading.innerHTML=`<div class="card lg" id="lgCard">
+    <div class="lg-ico"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+    <div><h1>Fintrack</h1><p>Enter your password to continue</p></div>
+    <input id="pw" type="password" class="input" placeholder="Password" autocomplete="current-password" enterkeyhint="go">
+    <button id="pwGo" class="lg-btn">Unlock</button>
+    <div id="pwMsg" class="lg-err">${msg}</div></div>`;
+  const fail=t=>{
+    const b=id("pwGo"), c=id("lgCard");
+    b.disabled=false; b.textContent="Unlock"; id("pwMsg").textContent=t;
+    id("pw").value=""; c.classList.remove("lg-shake"); void c.offsetWidth; c.classList.add("lg-shake");
+  };
+  const go=async()=>{
+    const b=id("pwGo"), pw=id("pw").value;
+    if(!pw||b.disabled) return;
+    b.disabled=true; b.innerHTML='<span class="lg-spin"></span>Unlocking'; id("pwMsg").textContent="";
     try{
-      const r=await fetch(BASE,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({pw:id("pw").value})});
+      const r=await fetch(BASE,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({pw})});
       const d=await r.json();
       if(d.token){ localStorage.setItem(TK,d.token); location.reload(); }
-      else id("pwMsg").textContent = d.error==="locked" ? "Too many tries, wait 15 min" : "Wrong password";
-    }catch{ id("pwMsg").textContent="Network error"; }
+      else fail(d.error==="locked" ? "Too many tries, wait 15 min" : "Wrong password");
+    }catch{ fail("Network error"); }
   };
+  id("pwGo").onclick=go;
+  id("pw").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); go(); } });
+  id("pw").focus();
 }
   
   function loadCache(){ try{ const v=localStorage.getItem(KEY); if(!v) return false; S.raw=JSON.parse(v); return true; }catch{return false;} }
