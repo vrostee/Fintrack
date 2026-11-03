@@ -101,7 +101,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
 <div id="loading" class="loading"><div style="text-align:center"><div class="coin"></div><div class="coin"></div><div class="coin"></div><div class="coin"></div><div class="mono muted" style="margin-top:12px">Syncing Fintrack...</div></div></div>
 <div id="app" class="app" style="visibility:hidden">
   <header class="top">
-    <div class="row"><strong>Fintrack</strong><button id="privacyBtn" class="btn iconbtn" aria-label="Toggle privacy"></button></div>
+    <div class="row"><strong>Fintrack</strong><div style="display:flex;gap:2px"><button id="lockBtn" class="btn iconbtn" aria-label="Lock app"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button><button id="privacyBtn" class="btn iconbtn" aria-label="Toggle privacy"></button></div></div>
     <div id="updated" class="small mono">Last updated: -</div>
     <div id="cacheNotice" class="notice hidden" style="margin-top:8px">Showing cached data</div>
   </header>
@@ -576,6 +576,18 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
   function render(play=true){ if(!S.raw) return; PLAY=!!play&&!RM; Chart.defaults.animation=PLAY?{duration:1000,easing:"easeOutQuart",delay:c=>c.type==="data"&&c.mode==="default"?c.dataIndex*60+c.datasetIndex*50:0}:false; document.body.classList.toggle("anim",PLAY); clearCharts(); if(S.wallet==="main") renderOverviewMain(); else renderOverviewOther(); renderTransactions(); renderInvestments(); setScreens(); applyPrivacy(); if(PLAY){ countUp(); clearTimeout(window._at); window._at=setTimeout(()=>document.body.classList.remove("anim"),2200); } }
 
 async function fetchData(showFailNotice=true,silent=false){ try{ const r=await fetch(`${BASE}?v=json&t=${encodeURIComponent(getTok()||"")}`,{cache:"no-store"}); if(!r.ok) throw 0; const txt=await r.text(); if(txt.indexOf('"error":"auth"')>=0){ logout(); return false; } const changed=txt!==localStorage.getItem(KEY); S.raw=JSON.parse(txt); localStorage.setItem(KEY,txt); E.cacheNotice.classList.add("hidden"); if(changed||!silent) render(!silent); return true; }catch{ if(showFailNotice&&S.raw) E.cacheNotice.classList.remove("hidden"); return false; } }
+
+  function confirmLock(){
+  if(id("lockDlg")) return;
+  const d=document.createElement("div");
+  d.id="lockDlg";
+  d.style.cssText="position:fixed;inset:0;z-index:150;display:grid;place-items:center;background:rgba(0,0,0,.55)";
+  d.innerHTML=`<div class="card lg" style="width:270px"><div><h1>Lock Fintrack?</h1><p>You'll need your password to open it again.</p></div><div class="grid2"><button class="btn" id="lkNo" style="border:1px solid var(--border)">Cancel</button><button class="lg-btn" id="lkYes">Lock</button></div></div>`;
+  document.body.appendChild(d);
+  id("lkNo").onclick=()=>d.remove();
+  d.onclick=e=>{ if(e.target===d) d.remove(); };
+  id("lkYes").onclick=()=>{ d.remove(); logout(); };
+}
   
   function logout(){
   localStorage.removeItem(TK); localStorage.removeItem(KEY); S.raw=null;
@@ -617,7 +629,7 @@ function showLogin(msg=""){
   function bindUI(){
     document.querySelectorAll("[data-wallet]").forEach(b=>b.onclick=()=>{S.wallet=b.dataset.wallet; S.txWallet=b.dataset.wallet; S.month=null; S.year=null; S.txMonth=null; render(); setScreens();});
     document.querySelectorAll("[data-screen]").forEach(b=>b.onclick=()=>{S.screen=b.dataset.screen; setScreens();});
-    id("privacyBtn").onclick=()=>{S.privacy=!S.privacy; applyPrivacy();}; E.ov.onclick=closePanel;
+    id("privacyBtn").onclick=()=>{S.privacy=!S.privacy; applyPrivacy();}; id("lockBtn").onclick=confirmLock; E.ov.onclick=closePanel;
     let sy=0,p=false; window.addEventListener("touchstart",e=>{ if(window.scrollY===0){ sy=e.touches[0].clientY; p=true; } },{passive:true});
     window.addEventListener("touchmove",e=>{ if(!p) return; if(e.touches[0].clientY-sy>40) E.pull.textContent="Release to refresh"; },{passive:true});
     window.addEventListener("touchend",async()=>{ if(!p) return; p=false; if(E.pull.textContent){ E.pull.textContent="Refreshing..."; await fetchData(false); E.pull.textContent=""; } });
