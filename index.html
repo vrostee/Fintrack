@@ -581,8 +581,8 @@ async function fetchData(showFailNotice=true,silent=false){ try{ const r=await f
   if(id("lockDlg")) return;
   const d=document.createElement("div");
   d.id="lockDlg";
-  d.style.cssText="position:fixed;inset:0;z-index:150;display:grid;place-items:center;background:rgba(0,0,0,.55)";
-  d.innerHTML=`<div class="card lg" style="width:270px"><div><h1>Lock Fintrack?</h1><p>You'll need your password to open it again.</p></div><div class="grid2"><button class="btn" id="lkNo" style="border:1px solid var(--border)">Cancel</button><button class="lg-btn" id="lkYes">Lock</button></div></div>`;
+  d.style.cssText="position:fixed;inset:0;z-index:150;display:grid;place-items:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)";
+  d.innerHTML=`<div class="card lg" style="width:270px;background:#0d1219;border-color:#2a3f55;box-shadow:0 12px 40px rgba(0,0,0,.6)"><div><h1>Lock Fintrack?</h1><p>You'll need your password to open it again.</p></div><div class="grid2"><button class="btn" id="lkNo" style="border:1px solid var(--border-active);color:var(--text)">Cancel</button><button class="lg-btn" id="lkYes">Lock</button></div></div>`;
   document.body.appendChild(d);
   id("lkNo").onclick=()=>d.remove();
   d.onclick=e=>{ if(e.target===d) d.remove(); };
