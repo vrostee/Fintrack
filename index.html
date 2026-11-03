@@ -112,6 +112,8 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
 <script>
 (() => {
   const URL = "https://script.google.com/macros/s/AKfycbyIBAp6T99eFb9mERWIHQFOrNHsPcxu1VNGhI_vRkVI61XICF8hIQ6sDxsOHgcXXAs3Lw/exec?v=json";
+  const TK = "fintrack_token";
+  const getTok = () => { const t=localStorage.getItem(TK); return t && Number(t.split(".")[0])>Date.now() ? t : null; };
   const KEY = "fintrack_cache_v1";
   const MAIN = ["BCA","Jago","Blu","Credit BCA","Credit BRI"];
   const DEBIT = ["BCA","Jago","Blu"];
@@ -559,7 +561,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
   }
   function render(play=true){ if(!S.raw) return; PLAY=!!play&&!RM; Chart.defaults.animation=PLAY?{duration:1000,easing:"easeOutQuart",delay:c=>c.type==="data"&&c.mode==="default"?c.dataIndex*60+c.datasetIndex*50:0}:false; document.body.classList.toggle("anim",PLAY); clearCharts(); if(S.wallet==="main") renderOverviewMain(); else renderOverviewOther(); renderTransactions(); renderInvestments(); setScreens(); applyPrivacy(); if(PLAY){ countUp(); clearTimeout(window._at); window._at=setTimeout(()=>document.body.classList.remove("anim"),2200); } }
 
-async function fetchData(showFailNotice=true,silent=false){ try{ const r=await fetch(URL,{cache:"no-store"}); if(!r.ok) throw 0; const txt=await r.text(); const changed=txt!==localStorage.getItem(KEY); S.raw=JSON.parse(txt); localStorage.setItem(KEY,txt); E.cacheNotice.classList.add("hidden"); if(changed||!silent) render(!silent); return true; }catch{ if(showFailNotice&&S.raw) E.cacheNotice.classList.remove("hidden"); return false; } }
+async function fetchData(showFailNotice=true,silent=false){ try{ const r=await fetch(`${BASE}?v=json&t=${encodeURIComponent(getTok()||"")}`,{cache:"no-store"}); if(!r.ok) throw 0; const txt=await r.text(); const changed=txt!==localStorage.getItem(KEY); S.raw=JSON.parse(txt); localStorage.setItem(KEY,txt); E.cacheNotice.classList.add("hidden"); if(changed||!silent) render(!silent); return true; }catch{ if(showFailNotice&&S.raw) E.cacheNotice.classList.remove("hidden"); return false; } }
   function loadCache(){ try{ const v=localStorage.getItem(KEY); if(!v) return false; S.raw=JSON.parse(v); return true; }catch{return false;} }
 
   function bindUI(){
