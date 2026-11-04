@@ -155,7 +155,7 @@ body.anim.fast .bar{animation-duration:.5s;animation-delay:0s}
   const EXCL_ALL = new Set(["Not Included","Budgeting","Other User"]);
   const EXCL_EXP = new Set(["Saving","Investment (In)"]);
 
-  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txWallet:"main",txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",txMonth:null,txPT:"m",month:null,year:null,charts:{} };
+  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txWallet:"main",txMode:"debit",txField:"All",txSearch:"",txGroup:"spend",txFlow:"both",txSort:"date_desc",txMonth:null,txPT:"m",month:null,year:null,charts:{} };
   const E = { app:id("app"),loading:id("loading"),updated:id("updated"),cacheNotice:id("cacheNotice"),overview:id("overview"),tx:id("transactions"),inv:id("investments"),pull:id("pull"),ov:id("ov"),panel:id("panel") };
 
   let PLAY=false;
@@ -183,6 +183,18 @@ body.anim.fast .bar{animation-duration:.5s;animation-delay:0s}
   }
   function id(x){return document.getElementById(x)}
   const LAST={}, BP={};
+  const isSI=t=>t.Type==="Saving"||t.Type==="Investment (In)"||t["Parent Category"]==="Investment";
+  function applyTxChips(rows){
+    const cc=S.txWallet==="main"&&S.txMode==="cc";
+    return rows.filter(t=>{
+      const si=isSI(t), a=Number(t.Amount);
+      if(!cc&&S.txGroup==="spend"&&si) return false;
+      if(!cc&&S.txGroup==="si"&&!si) return false;
+      if(S.txFlow==="out"&&!(a<0)) return false;
+      if(S.txFlow==="in"&&!(a>0)) return false;
+      return true;
+    });
+  }
   const inPeriod=t=>S.txMonth==="__all__"||(S.txPT==="y"?String(t.Month||"").slice(0,4)===S.txMonth:t.Month===S.txMonth);
   function movePill(pill,sel){
     const a=document.querySelector(sel+".active");
@@ -487,7 +499,7 @@ body.anim.fast .bar{animation-duration:.5s;animation-delay:0s}
     }
 
     // apply period filter first
-    let rows = S.txMonth==="__all__" ? [...baseAll] : baseAll.filter(inPeriod);
+    let rows = applyTxChips(S.txMonth==="__all__" ? [...baseAll] : baseAll.filter(inPeriod));
 
     // apply search
     if(S.txSearch.trim()){
@@ -511,7 +523,8 @@ body.anim.fast .bar{animation-duration:.5s;animation-delay:0s}
       return 0;
     });
 
-    // build month options
+    const isCC=S.txWallet==="main"&&S.txMode==="cc";
+    // build month options  
     const mthOpts = `<option value="__all__" ${S.txMonth==="__all__"?"selected":""}>${S.txPT==="y"?"All years":"All months"}</option>`
       + txVals.map(m=>`<option value="${m}" ${m===S.txMonth?"selected":""}>${m}</option>`).join("");
 
@@ -524,7 +537,11 @@ body.anim.fast .bar{animation-duration:.5s;animation-delay:0s}
       </div>
       ${S.txWallet==="main"?`<div class="toggle" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><button class="btn ${S.txMode==="debit"?"active":""}" id="modeDebit">Debit</button><button class="btn ${S.txMode==="cc"?"active":""}" id="modeCc">CC</button></div>`:""}
       <div style="display:grid;grid-template-columns:90px 1fr;gap:6px;margin-bottom:6px"><select id="txPT" class="sel"><option value="y" ${S.txPT==="y"?"selected":""}>Year</option><option value="m" ${S.txPT==="m"?"selected":""}>Month</option></select><select id="txMonth" class="sel">${mthOpts}</select></div>
-      <div style="display:grid;grid-template-columns:80px 1fr 90px;gap:6px;margin-bottom:4px">
+      <div style="display:grid;grid-template-columns:${isCC?"1fr":"1.25fr 1fr"};gap:6px;margin-bottom:6px">
+              ${isCC?"":`<div class="toggle" style="grid-template-columns:repeat(3,1fr)"><button class="btn ${S.txGroup==="spend"?"active":""}" data-g="spend" style="padding:6px 2px;font-size:11px">Spend</button><button class="btn ${S.txGroup==="si"?"active":""}" data-g="si" style="padding:6px 2px;font-size:11px">Save/Inv</button><button class="btn ${S.txGroup==="all"?"active":""}" data-g="all" style="padding:6px 2px;font-size:11px">All</button></div>`}
+              <div class="toggle" style="grid-template-columns:repeat(3,1fr)"><button class="btn ${S.txFlow==="out"?"active":""}" data-f="out" style="padding:6px 2px;font-size:11px">Out</button><button class="btn ${S.txFlow==="in"?"active":""}" data-f="in" style="padding:6px 2px;font-size:11px">In</button><button class="btn ${S.txFlow==="both"?"active":""}" data-f="both" style="padding:6px 2px;font-size:11px">Both</button></div>
+            </div>
+            <div style="display:grid;grid-template-columns:80px 1fr 90px;gap:6px;margin-bottom:4px">
         <select id="txField" class="sel"><option value="All">All</option><option value="Flow">Flow</option><option value="Category">Category</option><option value="Parent Category">Parent</option><option value="Type">Type</option><option value="Wallet">Wallet</option><option value="Note">Note</option></select>
         <input id="txSearch" class="input" placeholder="Search..." value="${esc(S.txSearch)}" autocomplete="off" autocorrect="off" spellcheck="false">
         <select id="txSort" class="sel"><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="amount_desc">Amt ↓</option><option value="amount_asc">Amt ↑</option></select>
@@ -554,11 +571,13 @@ body.anim.fast .bar{animation-duration:.5s;animation-delay:0s}
     // Use input event but update S and re-render only the list, NOT the whole card (fixes keyboard dismiss)
     id("txSearch").addEventListener("input",e=>{S.txSearch=e.target.value; renderTxList(sorted,baseAll,txMths);});
     id("txListWrap").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>txDetail(sorted[Number(b.dataset.i)]));
+    document.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{S.txGroup=b.dataset.g; renderTransactions(); stagList(); applyPrivacy();});
+    document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{S.txFlow=b.dataset.f; renderTransactions(); stagList(); applyPrivacy();});
   }
 
   function renderTxList(prevSorted, baseAll, txMths, stag){
     // re-filter & re-sort without touching the outer card HTML (preserves input focus)
-    let rows = S.txMonth==="__all__" ? [...baseAll] : baseAll.filter(inPeriod);
+    let rows = applyTxChips(S.txMonth==="__all__" ? [...baseAll] : baseAll.filter(inPeriod));
     if(S.txSearch.trim()){
       const q=S.txSearch.toLowerCase();
       rows=rows.filter(t=>{
@@ -682,9 +701,10 @@ function showLogin(msg=""){
     document.querySelectorAll("[data-wallet]").forEach(b=>b.onclick=()=>{S.wallet=b.dataset.wallet; S.txWallet=b.dataset.wallet; S.month=null; S.year=null; S.txMonth=null; render(); setScreens();});
     document.querySelectorAll("[data-screen]").forEach(b=>b.onclick=()=>{S.screen=b.dataset.screen; setScreens();});
     id("privacyBtn").onclick=()=>{S.privacy=!S.privacy; applyPrivacy();}; id("lockBtn").onclick=confirmLock; E.ov.onclick=closePanel;
-    let sy=0,p=false; window.addEventListener("touchstart",e=>{ if(window.scrollY===0){ sy=e.touches[0].clientY; p=true; } },{passive:true});
-    window.addEventListener("touchmove",e=>{ if(!p) return; if(e.touches[0].clientY-sy>40) E.pull.textContent="Release to refresh"; },{passive:true});
-    window.addEventListener("touchend",async()=>{ if(!p) return; p=false; if(E.pull.textContent){ E.pull.textContent="Refreshing..."; document.body.classList.add("sk"); await fetchData(false); document.body.classList.remove("sk"); E.pull.textContent=""; } });
+    let sy=0,dy=0,p=false; const TH=130;
+    window.addEventListener("touchstart",e=>{ p=false; dy=0; if(window.scrollY>0||e.target.closest(".scroller,.panel,#lockDlg")) return; sy=e.touches[0].clientY; p=true; },{passive:true});
+    window.addEventListener("touchmove",e=>{ if(!p) return; dy=e.touches[0].clientY-sy; if(dy<=10){ E.pull.textContent=""; E.pull.style.minHeight=""; return; } E.pull.textContent=dy>=TH?"Release to refresh":"Pull to refresh"; E.pull.style.minHeight=Math.max(18,Math.min(dy*0.4,56))+"px"; },{passive:true});
+    window.addEventListener("touchend",async()=>{ if(!p) return; p=false; const go=dy>=TH; dy=0; E.pull.style.minHeight=""; if(!go){ E.pull.textContent=""; return; } E.pull.textContent="Refreshing..."; document.body.classList.add("sk"); await fetchData(false); document.body.classList.remove("sk"); E.pull.textContent=""; });
   }
 
   async function start(){
