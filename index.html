@@ -95,6 +95,25 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
 .lg-err{min-height:14px;font-size:11px;color:var(--expense)}
 .lg-shake{animation:shk .35s}
 @keyframes shk{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+/* ===== MOTION ===== */
+.seg{position:relative}
+.pill{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:rgba(255,255,255,.10);pointer-events:none;transition:transform .32s cubic-bezier(.3,.9,.3,1.08),width .32s cubic-bezier(.3,.9,.3,1.08)}
+.seg .btn,.tabs .btn{position:relative;z-index:1}
+.seg .btn.active,.tabs .btn.active{background:transparent}
+.btn,.tx,.kpi{transition:transform .12s ease,color .2s,background .15s}
+.btn:active,.tx:active,.kpi:active{transform:scale(.96)}
+.money{transition:filter .25s ease}
+.enter>*{animation:rise .28s cubic-bezier(.2,.8,.2,1) backwards}
+.stg>.tx{animation:rise .3s cubic-bezier(.2,.8,.2,1) backwards}
+.stg>.tx:nth-child(2){animation-delay:.04s}.stg>.tx:nth-child(3){animation-delay:.08s}.stg>.tx:nth-child(4){animation-delay:.12s}.stg>.tx:nth-child(5){animation-delay:.16s}.stg>.tx:nth-child(6){animation-delay:.2s}.stg>.tx:nth-child(7){animation-delay:.24s}.stg>.tx:nth-child(8){animation-delay:.28s}.stg>.tx:nth-child(n+9){animation-delay:.32s}
+body.anim.fast #overview>*{animation-duration:.3s;animation-delay:0s!important}
+body.anim.fast .bar{animation-duration:.5s;animation-delay:0s}
+.bar.pulse{animation:pls .7s ease 2}
+@keyframes pls{50%{filter:brightness(1.7)}}
+.sk .card{animation:skp .8s ease-in-out infinite}
+@keyframes skp{50%{opacity:.55}}
+.panel{transform:translateX(105%);transition:transform .45s cubic-bezier(.2,.9,.3,1.08);right:-24px;padding-right:38px}
+@media (prefers-reduced-motion:reduce){.pill,.panel{transition:none}.enter>*,.stg>.tx{animation:none}}
 </style>
 </head>
 <body>
@@ -105,7 +124,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
     <div id="updated" class="small mono">Last updated: -</div>
     <div id="cacheNotice" class="notice hidden" style="margin-top:8px">Showing cached data</div>
   </header>
-  <div class="seg" id="walletSeg">
+  <div class="seg" id="walletSeg"><span class="pill" id="segPill"></span>
     <button class="btn active" data-wallet="main">Main Wallets</button>
     <button class="btn" data-wallet="other">Other Wallets</button>
   </div>
@@ -116,7 +135,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
     <section id="investments" class="hidden"></section>
   </main>
 </div>
-<nav class="tabs" id="bottomTabs">
+<nav class="tabs" id="bottomTabs"><span class="pill" id="tabPill"></span>
   <button class="btn active" data-screen="overview">Overview</button>
   <button class="btn" data-screen="transactions">Transactions</button>
   <button class="btn" data-screen="investments">Investments</button>
@@ -136,7 +155,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
   const EXCL_ALL = new Set(["Not Included","Budgeting","Other User"]);
   const EXCL_EXP = new Set(["Saving","Investment (In)"]);
 
-  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txWallet:"main",txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",txMonth:null,month:null,year:null,charts:{} };
+  const S = { raw:null,wallet:"main",screen:"overview",privacy:false,txWallet:"main",txMode:"debit",txField:"All",txSearch:"",txSort:"date_desc",txMonth:null,txPT:"m",month:null,year:null,charts:{} };
   const E = { app:id("app"),loading:id("loading"),updated:id("updated"),cacheNotice:id("cacheNotice"),overview:id("overview"),tx:id("transactions"),inv:id("investments"),pull:id("pull"),ov:id("ov"),panel:id("panel") };
 
   let PLAY=false;
@@ -156,11 +175,31 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
   function countUp(){
     document.querySelectorAll(".value[data-v]").forEach(el=>{
       const v=Number(el.dataset.v), t0=performance.now();
-      const step=n=>{ const t=Math.min(1,(n-t0)/900); el.textContent=fmt.num(v*(1-Math.pow(1-t,3))); if(t<1) requestAnimationFrame(step); };
+      const k=S.wallet+"|"+(el.previousElementSibling?el.previousElementSibling.textContent:"");
+      const from=(k in LAST)?LAST[k]:0; LAST[k]=v;
+      const step=n=>{ const t=Math.min(1,(n-t0)/900); el.textContent=fmt.num(from+(v-from)*(1-Math.pow(1-t,3))); if(t<1) requestAnimationFrame(step); };
       requestAnimationFrame(step);
     });
   }
   function id(x){return document.getElementById(x)}
+  const LAST={}, BP={};
+  const inPeriod=t=>S.txMonth==="__all__"||(S.txPT==="y"?String(t.Month||"").slice(0,4)===S.txMonth:t.Month===S.txMonth);
+  function movePill(pill,sel){
+    const a=document.querySelector(sel+".active");
+    if(!pill||!a||!a.offsetWidth) return;
+    const first=!pill._s;
+    if(first) pill.style.transition="none";
+    pill.style.width=a.offsetWidth+"px";
+    pill.style.transform="translateX("+a.offsetLeft+"px)";
+    if(first){ void pill.offsetWidth; pill.style.transition=""; pill._s=1; }
+  }
+  function movePills(){ movePill(id("tabPill"),"#bottomTabs .btn"); movePill(id("segPill"),"#walletSeg .btn"); }
+  function stagList(){
+    const w=id("txListWrap"); if(!w) return;
+    w.classList.remove("stg"); void w.offsetWidth; w.classList.add("stg");
+    clearTimeout(w._st); w._st=setTimeout(()=>w.classList.remove("stg"),800);
+  }
+  
   function esc(s){return String(s??"").replace(/[&<>'"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[m]))}
   const fmt = {
     num(n){ n=Number(n||0); const a=Math.abs(n); if(a>=1e6) return `Rp ${(n/1e6).toFixed(2)}M`; if(a>=1e3) return `Rp ${(n/1e3).toFixed(1)}K`; return `Rp ${n.toFixed(0)}`; },
@@ -284,8 +323,10 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
     <div class="kpis">${kpi("income","Total Income",income,dlt(income,prevIncome))}${kpi("expense","Total Expenses",expense,dlt(expense,prevExpense))}${kpi("saving","Saving",saving,dlt(saving,prevSaving))}${kpi("balance","Net Balance",net,dlt(net,prevNet))}</div>
     <div class="card" ${!S.month||S.month==="__all__"?'style="display:none"':''}><div class="title">Budget Utilization</div>${buds.map(b=>{
       const cls=b.pct>=100?"bud-over":b.pct>=80?"bud-warn":"bud-ok";
+      const op=BP[b.p], pu=(S.month!=="__all__"&&op!==undefined&&((b.pct>=80&&op<80)||(b.pct>=100&&op<100)))?" pulse":"";
+      if(S.month!=="__all__") BP[b.p]=b.pct;
       const lc=b.pct>=100?"var(--expense)":b.pct>=80?"var(--warn)":"var(--income)";
-      return `<div style="margin:8px 0"><div class="row"><span style="font-size:11px">${esc(b.p)}</span><span class="mono budget-num" style="color:${lc}">${b.pct.toFixed(0)}%</span></div><div class="progress"><div class="bar ${cls}" style="width:${Math.min(100,b.pct).toFixed(1)}%"></div></div><div class="muted" style="font-size:9px;margin-top:2px">${fmt.num(b.u)} / ${fmt.num(b.l)}</div></div>`;
+      return `<div style="margin:8px 0"><div class="row"><span style="font-size:11px">${esc(b.p)}</span><span class="mono budget-num" style="color:${lc}">${b.pct.toFixed(0)}%</span></div><div class="progress"><div class="bar ${cls}${pu}" style="width:${Math.min(100,b.pct).toFixed(1)}%"></div></div><div class="muted" style="font-size:9px;margin-top:2px">${fmt.num(b.u)} / ${fmt.num(b.l)}</div></div>`;
     }).join("")}</div>
     <div class="card"><div class="title">Monthly Trend (current year)</div><canvas id="chMainTrend"></canvas></div>
     <div class="card"><div class="title">Expense Split by Type</div><div style="position:relative;height:44px"><canvas id="chType" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas></div></div>
@@ -297,7 +338,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
     <div class="card"><div class="title">Income Breakdown</div>${table(incBreak,totalInc,false)}</div>
     <div class="card"><div class="title">Income vs Expense by Wallet <span class="muted" style="font-weight:400;font-size:9px">${S.month==="__all__"?"all months":S.month}</span></div><canvas id="chWalletNet"></canvas></div>`;
 
-    id("monthSel").onchange=e=>{S.month=e.target.value; render();};
+    id("monthSel").onchange=e=>{S.month=e.target.value; render(true,true);};
 
     // monthly trend — all months if "All", else current year only
     const y=(S.month&&S.month!=="__all__")?S.month.slice(0,4):null, ym=y?mths.filter(m=>m.startsWith(y)):mths;
@@ -420,7 +461,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
     <div class="card"><div class="title">Spending Heatmap (12 months)</div><div style="overflow:auto"><table class="table mono"><thead><tr><th>Parent</th>${recent.map(m=>`<th>${m.slice(5)}</th>`).join("")}</tr></thead><tbody>${heat.map(h=>`<tr><td>${esc(h.pc)}</td>${h.vals.map((v,i)=>`<td title="${esc(h.pc)} · ${recent[i]}: ${heatFmt(v)}" style="cursor:default;padding:4px 3px;border-radius:3px;background:rgba(201,64,96,${v?(v/maxH*.8).toFixed(2):'0'})">${v?'':'&nbsp;'}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
     <div class="card"><div class="title">Yearly Inflow vs Spending</div><canvas id="chYearly"></canvas></div>
     <div class="card"><div class="title">Parent Category Breakdown</div>${table(pBreak,pBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div><div class="card"><div class="title">Income Breakdown</div>${table(iBreak,iBreak.reduce((a,b)=>a+b[1],0)||1,false)}</div>`;
-    id("yearSel").onchange=e=>{S.year=e.target.value; render();};
+    id("yearSel").onchange=e=>{S.year=e.target.value; render(true,true);};
     const cumMin=Math.min(0,...cum), cumMax=Math.max(...cum);
     S.charts.cum=new Chart(id("chCum"),{type:"line",data:{labels:cumMths,datasets:[{label:"Cumulative",data:cum,borderColor:"#658DA8",backgroundColor:"rgba(101,141,168,0.35)",fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#4d6b85",font:{size:7,family:appleFont}},grid:{color:"#1e2d3d"}},y:{min:cumMin<0?niceMax(cumMin):0,max:cumMax>0?niceMax(cumMax):0,ticks:{color:"#4d6b85",font:{size:7,family:appleFont},callback:v=>fmt.num(v)},grid:{color:"#1e2d3d"}}}}});
     const yAllVals=[...yIn,...yOut].filter(v=>v>0);
@@ -440,12 +481,13 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
     const baseAll = S.txWallet==="all" ? byWallet([...DEBIT,...OTHER]) : S.txWallet==="main" ? byWallet(S.txMode==="debit"?DEBIT:CREDIT) : byWallet(OTHER);
     const txMths = months(baseAll);
     // default txMonth to current overview month for main/debit, else latest
-    if(S.txMonth===null||(S.txMonth!=="__all__"&&!txMths.includes(S.txMonth))){
-      S.txMonth = txMths[txMths.length-1] || "__all__";
+    const txVals = S.txPT==="y" ? years(baseAll) : txMths;
+    if(S.txMonth===null||(S.txMonth!=="__all__"&&!txVals.includes(S.txMonth))){
+      S.txMonth = txVals[txVals.length-1] || "__all__";
     }
 
-    // apply month filter first
-    let rows = S.txMonth==="__all__" ? [...baseAll] : baseAll.filter(t=>t.Month===S.txMonth);
+    // apply period filter first
+    let rows = S.txMonth==="__all__" ? [...baseAll] : baseAll.filter(inPeriod);
 
     // apply search
     if(S.txSearch.trim()){
@@ -470,8 +512,8 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
     });
 
     // build month options
-    const mthOpts = `<option value="__all__" ${S.txMonth==="__all__"?"selected":""}>All months</option>`
-      + txMths.map(m=>`<option value="${m}" ${m===S.txMonth?"selected":""}>${m}</option>`).join("");
+    const mthOpts = `<option value="__all__" ${S.txMonth==="__all__"?"selected":""}>${S.txPT==="y"?"All years":"All months"}</option>`
+      + txVals.map(m=>`<option value="${m}" ${m===S.txMonth?"selected":""}>${m}</option>`).join("");
 
     E.tx.innerHTML = `<div class="card">
       <div class="title">Transactions <span class="muted" style="font-weight:400;font-size:10px">${sorted.length} entries</span></div>
@@ -481,7 +523,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
         <button class="btn ${S.txWallet==="all"?"active":""}" id="txWalletAll">All</button>
       </div>
       ${S.txWallet==="main"?`<div class="toggle" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><button class="btn ${S.txMode==="debit"?"active":""}" id="modeDebit">Debit</button><button class="btn ${S.txMode==="cc"?"active":""}" id="modeCc">CC</button></div>`:""}
-      <select id="txMonth" class="sel" style="width:100%;margin-bottom:6px">${mthOpts}</select>
+      <div style="display:grid;grid-template-columns:90px 1fr;gap:6px;margin-bottom:6px"><select id="txPT" class="sel"><option value="y" ${S.txPT==="y"?"selected":""}>Year</option><option value="m" ${S.txPT==="m"?"selected":""}>Month</option></select><select id="txMonth" class="sel">${mthOpts}</select></div>
       <div style="display:grid;grid-template-columns:80px 1fr 90px;gap:6px;margin-bottom:4px">
         <select id="txField" class="sel"><option value="All">All</option><option value="Flow">Flow</option><option value="Category">Category</option><option value="Parent Category">Parent</option><option value="Type">Type</option><option value="Wallet">Wallet</option><option value="Note">Note</option></select>
         <input id="txSearch" class="input" placeholder="Search..." value="${esc(S.txSearch)}" autocomplete="off" autocorrect="off" spellcheck="false">
@@ -505,7 +547,8 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
       id("modeDebit").onclick=()=>{S.txMode="debit"; S.txMonth="__all__"; renderTransactions(); applyPrivacy();};
       id("modeCc").onclick=()=>{S.txMode="cc"; S.txMonth="__all__"; renderTransactions(); applyPrivacy();};
     }
-    id("txMonth").onchange=e=>{S.txMonth=e.target.value; renderTxList(sorted,baseAll,txMths);};
+    id("txPT").onchange=e=>{S.txPT=e.target.value; S.txMonth=null; renderTransactions(); stagList(); applyPrivacy();};
+    id("txMonth").onchange=e=>{S.txMonth=e.target.value; renderTxList(sorted,baseAll,txMths,true);};
     id("txField").onchange=e=>{S.txField=e.target.value; renderTxList(sorted,baseAll,txMths);};
     id("txSort").onchange=e=>{S.txSort=e.target.value; renderTxList(sorted,baseAll,txMths);};
     // Use input event but update S and re-render only the list, NOT the whole card (fixes keyboard dismiss)
@@ -513,9 +556,9 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
     id("txListWrap").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>txDetail(sorted[Number(b.dataset.i)]));
   }
 
-  function renderTxList(prevSorted, baseAll, txMths){
+  function renderTxList(prevSorted, baseAll, txMths, stag){
     // re-filter & re-sort without touching the outer card HTML (preserves input focus)
-    let rows = S.txMonth==="__all__" ? [...baseAll] : baseAll.filter(t=>t.Month===S.txMonth);
+    let rows = S.txMonth==="__all__" ? [...baseAll] : baseAll.filter(inPeriod);
     if(S.txSearch.trim()){
       const q=S.txSearch.toLowerCase();
       rows=rows.filter(t=>{
@@ -541,6 +584,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
       <span><div>${esc(t.Category)}${t.Note?` <span class="muted">· ${esc(t.Note)}</span>`:""}</div><div class="small">${esc(t.Wallet)} · ${esc(t.Date)} · <span class="badge" style="${tPill(t.Type)}">${esc(t.Type)}</span></div></span>
       <span class="amount mono money" style="color:${t.Flow==="Income"?"var(--income)":"var(--expense)"}">${fmt.num(Number(t.Amount))}</span>
     </button>`).join("");
+    if(stag) stagList();
     // update count in title
     const titleEl = document.querySelector("#transactions .title");
     if(titleEl) titleEl.innerHTML = `Transactions <span class="muted" style="font-weight:400;font-size:10px">${sorted.length} entries</span>`;
@@ -551,7 +595,7 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
     wrap.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>txDetail(sorted[Number(b.dataset.i)]));
     // re-bind month/field/sort selects to new sorted list
     const mf=id("txMonth"), ff=id("txField"), sf=id("txSort");
-    if(mf) mf.onchange=e=>{S.txMonth=e.target.value; renderTxList(sorted,baseAll,txMths);};
+    if(mf) mf.onchange=e=>{S.txMonth=e.target.value; renderTxList(sorted,baseAll,txMths,true);};
     if(ff) ff.onchange=e=>{S.txField=e.target.value; renderTxList(sorted,baseAll,txMths);};
     if(sf) sf.onchange=e=>{S.txSort=e.target.value; renderTxList(sorted,baseAll,txMths);};
     applyPrivacy();
@@ -572,8 +616,14 @@ body.anim .bar{animation:fill 1s cubic-bezier(.2,.8,.2,1) .3s both}
     id("bottomTabs").style.gridTemplateColumns = showInv ? "repeat(3,1fr)" : "repeat(2,1fr)";
     document.querySelectorAll("[data-wallet]").forEach(b=>b.classList.toggle("active",b.dataset.wallet===S.wallet));
     id("walletSeg").classList.toggle("hidden",S.screen==="transactions");
+    movePills();
+    if(S._last!==S.screen){
+      const el=id(S.screen); el.classList.add("enter"); clearTimeout(el._et); el._et=setTimeout(()=>el.classList.remove("enter"),450);
+      if(S.screen==="transactions") stagList();
+      S._last=S.screen;
+    }
   }
-  function render(play=true){ if(!S.raw) return; PLAY=!!play&&!RM; Chart.defaults.animation=PLAY?{duration:1000,easing:"easeOutQuart",delay:c=>c.type==="data"&&c.mode==="default"?c.dataIndex*60+c.datasetIndex*50:0}:false; document.body.classList.toggle("anim",PLAY); clearCharts(); if(S.wallet==="main") renderOverviewMain(); else renderOverviewOther(); renderTransactions(); renderInvestments(); setScreens(); applyPrivacy(); if(PLAY){ countUp(); clearTimeout(window._at); window._at=setTimeout(()=>document.body.classList.remove("anim"),2200); } }
+  function render(play=true,fast=false){ if(!S.raw) return; PLAY=!!play&&!RM; Chart.defaults.animation=PLAY?{duration:1000,easing:"easeOutQuart",delay:c=>c.type==="data"&&c.mode==="default"?c.dataIndex*60+c.datasetIndex*50:0}:false; document.body.classList.toggle("anim",PLAY); document.body.classList.toggle("fast",fast&&PLAY); clearCharts(); if(S.wallet==="main") renderOverviewMain(); else renderOverviewOther(); renderTransactions(); renderInvestments(); setScreens(); applyPrivacy(); if(PLAY){ countUp(); clearTimeout(window._at); window._at=setTimeout(()=>document.body.classList.remove("anim"),2200); } }
 
 async function fetchData(showFailNotice=true,silent=false){ try{ const r=await fetch(`${BASE}?v=json&t=${encodeURIComponent(getTok()||"")}`,{cache:"no-store"}); if(!r.ok) throw 0; const txt=await r.text(); if(txt.indexOf('"error":"auth"')>=0){ logout(); return false; } const changed=txt!==localStorage.getItem(KEY); S.raw=JSON.parse(txt); localStorage.setItem(KEY,txt); E.cacheNotice.classList.add("hidden"); if(changed||!silent) render(!silent); return true; }catch{ if(showFailNotice&&S.raw) E.cacheNotice.classList.remove("hidden"); return false; } }
 
@@ -627,12 +677,14 @@ function showLogin(msg=""){
   function loadCache(){ try{ const v=localStorage.getItem(KEY); if(!v) return false; S.raw=JSON.parse(v); return true; }catch{return false;} }
 
   function bindUI(){
+    document.addEventListener("touchstart",()=>{},{passive:true});
+    window.addEventListener("resize",movePills);
     document.querySelectorAll("[data-wallet]").forEach(b=>b.onclick=()=>{S.wallet=b.dataset.wallet; S.txWallet=b.dataset.wallet; S.month=null; S.year=null; S.txMonth=null; render(); setScreens();});
     document.querySelectorAll("[data-screen]").forEach(b=>b.onclick=()=>{S.screen=b.dataset.screen; setScreens();});
     id("privacyBtn").onclick=()=>{S.privacy=!S.privacy; applyPrivacy();}; id("lockBtn").onclick=confirmLock; E.ov.onclick=closePanel;
     let sy=0,p=false; window.addEventListener("touchstart",e=>{ if(window.scrollY===0){ sy=e.touches[0].clientY; p=true; } },{passive:true});
     window.addEventListener("touchmove",e=>{ if(!p) return; if(e.touches[0].clientY-sy>40) E.pull.textContent="Release to refresh"; },{passive:true});
-    window.addEventListener("touchend",async()=>{ if(!p) return; p=false; if(E.pull.textContent){ E.pull.textContent="Refreshing..."; await fetchData(false); E.pull.textContent=""; } });
+    window.addEventListener("touchend",async()=>{ if(!p) return; p=false; if(E.pull.textContent){ E.pull.textContent="Refreshing..."; document.body.classList.add("sk"); await fetchData(false); document.body.classList.remove("sk"); E.pull.textContent=""; } });
   }
 
   async function start(){
