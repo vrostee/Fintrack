@@ -1,4 +1,4 @@
-const CACHE_VERSION = "fintrack-v10";
+const CACHE_VERSION = "fintrack-v11";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 const DATA_URL_PREFIX = "https://script.google.com/macros/s/";
